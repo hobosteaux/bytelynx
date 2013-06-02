@@ -1,0 +1,8 @@
+Init get -> [char mType, ushort id, 128bit hash]
+Init get resp -> [char mType, ushort id, 128bit hash, ulong chunkCount, ulong chunkSize]
+I/O request -> [char mType, ushort id, 128bit hash, chunkNo]
+I/O resend -> [char mType, ushort id, 128bit hash, chunkNo, slices(ushort? arr)]
+Awk -> [char mType, ushort awkID]
+I/O send -> [char mType, ushort id, 128bit hash, chunkNo, sliceNo, DATA]
+File request -> [char mType, ushort id, 128bit hash]
+File response -> [char mType, ushort id, ulonglong size (8 bit), [128bit hashes]] #NOTE -> this will need pkt continuation for files > 80gb 

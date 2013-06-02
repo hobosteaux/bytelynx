@@ -1,0 +1,53 @@
+Think of a new chunk retransfer option. Current one will only RT once (when it reaches end of arr)
+	Is this needed? The RT algorithm will already catch this.
+		Corners: client goes offline during transfer
+			Ping goes dead, xfer still needed slices to another host?
+				Need arr of expected hash:chunk:slice expected from each client
+			Subdividing slices?
+
+Holding state of who has what file during xfer?
+	state -> {fhash:conns}
+		Must remove dead clients
+
+What if a client goes dead and then a packet is sent to them?
+	RT will continuously retry
+
+remove conns after x*const time of no resp
+
+Enforce 'AT MOST ONCE' behavor in case of dropped packets
+
+Adding conns w/ file during xfer?
+	Broadcast to firends: ive joined, what do you need?
+		Need current xfers list
+
+Make watchers event-based?
+
+ResendWatcher class. Threaded constructor, give state and it watches connections for retrans
+	Based on current ping*3 for timeout
+
+Add the halting value in the state and ensure all threads will halt at a given moment
+
+Determining when a file is finished
+
+sqlite db for current files and transfer progress
+	TABLE in_progress
+		str hash
+		bitstring chunkcompletion
+	TABLE files
+		str hash [key](indexed?)
+		str filename
+		str basepath
+		bool completed
+		uint chunksize
+	TABLE chunks
+		uint key
+		str fhash (indexed?)
+		uint chunkno
+		str cHash
+	HOOKS:
+		Chunk finished / File finished
+		File loading
+
+
+EXTERNAL DEV TIPS:
+	Constant r-dling? check that hashing f(x) is correct
