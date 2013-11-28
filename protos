@@ -1,8 +1,46 @@
-Init get -> [char mType, ushort id, 128bit hash]
-Init get resp -> [char mType, ushort id, 128bit hash, ulong chunkCount, ulong chunkSize]
-I/O request -> [char mType, ushort id, 128bit hash, chunkNo]
-I/O resend -> [char mType, ushort id, 128bit hash, chunkNo, slices(ushort? arr)]
+Max pkt: 65,507 bytes
+
+# Sent to initiate a file transfer
+Init get -> [char mType, ushort id, 160bit hash]
+# Reply to initiation with file metadata
+Init get resp -> [char mType, ushort id, 160bit hash, ulong chunkCount, ulong chunkSize]
+
+I/O request -> [char mType, ushort id, 160bit hash, chunkNo]
+I/O resend -> [char mType, ushort id, 160bit hash, chunkNo, slices(ushort? arr)]
 Awk -> [char mType, ushort awkID]
-I/O send -> [char mType, ushort id, 128bit hash, chunkNo, sliceNo, DATA]
-File request -> [char mType, ushort id, 128bit hash]
-File response -> [char mType, ushort id, ulonglong size (8 bit), [128bit hashes]] #NOTE -> this will need pkt continuation for files > 80gb 
+I/O send -> [char mType, ushort id, 160bit hash, chunkNo, sliceNo, DATA]
+File request -> [char mType, ushort id, 160bit hash]
+File response -> [char mType, ushort id, ulonglong size (8 byte), [160bit hashes]]
+	#NOTE -> Only supports 3274 hashes. This will need pkt continuation for files > 63.94gb @ 20MB/chunk
+
+
+Encryption:
+	[enc. flag, payload[type, id, payload]]
+
+Walkthrough:
+
+Client								Peer
+	# ANY PACKET
+Packet(type, id, payload)
+									Awk(id)
+On failure to receive awk:
+Resends packet after 3*ave ping
+
+	# HANDSHAKE
+Sends nonce enc. w/ pub key
+									If (client is known) return enc. nonce
+									else return /dev/urand
+	# SEARCH
+
+
+	# FILE TRANSFER
+GetFile(hash)
+									FileResponse(hash, name, size, [chunk hashes])
+FileStatus(hash)
+									CompletedChunks(chunk flags)
+I/O request(hash, chunkNo)
+									I/O send(hash, chunkNo, sliceNo, DATA)
+									I/O send(hash, chunkNo, sliceNo, DATA)
+									# Max of 323 slices per chunk (20MB / 65,000B)
+I/O resend(hash, chunkNo, slices(bitarr))
+

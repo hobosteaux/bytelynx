@@ -48,6 +48,53 @@ sqlite db for current files and transfer progress
 		Chunk finished / File finished
 		File loading
 
+DHT
+	sqlite for most active clients on program exit (dynamic startup endpoints)
+		TABLE swarm
+			str hash
+			str ip/port
+	sqlite for friendly clients
+		TABLE peers
+			str nick
+			bin pubkey
+	Do not need to store tuples for addrs -> cert hash is addr on the dht
+
+Firewall boring
+	hole punching - STUN
+	UpNP
+	nat-pmp / PCP
+
+Encryption
+	Cache public keys
+	reject connections to friends if pubkey changes
+
+On connection init:
+	Assume both parties have pub key in store
+	send [handshake ID](Encrypted[nonce][pubkey hash])
+	recipient decrypts, checks if pubkey hash is in store
+	If so, send back
+		[handshake response ID](Encrypted[nonce])
+	If not, send back
+		[handshake response ID](rubbish bits(/dev/urand))
+
+GUI
+	Pub-Sub
+	a threaded listener that code can push updates to
+	listener has a list of keys that subscribers want
+	put wanted data into an array for each connection
+	each second, push updates out to clients
+
+FOR HACKATHON
+	Kademlia DHT
+		Binary addr is the bin(hash(pub key))
+	Separate GUI
+		Subscribes to updates from the backend
+		tcp-based
+	Encrypted Transit
+		Friend-to-friend transit
+
+
+REPLACE HASHES TO BE 160 BYTES
 
 EXTERNAL DEV TIPS:
 	Constant r-dling? check that hashing f(x) is correct

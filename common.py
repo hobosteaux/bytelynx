@@ -39,7 +39,7 @@ class Connection():
 	def SendData(self, typeNum, data):
 		pktID = self.PktCounter
 		self.PktCounter += 1
-		if self.PktCounter > 65000: #Find exact max
+		if self.PktCounter > 65000: # TODO: Find exact max
 			self.PktCounter = 0
 		d = (struct.pack('>BH', typeNum, pktID) + data)
 		self.RecentlySent[pktID] = RecentPacket(data)
@@ -63,7 +63,7 @@ class Connection():
 
 	def AwkPkt(self, num):
 		del self.RecentlySent[num]
-		# Fix w/ try catch once error is known
+		# TODO: Fix w/ try catch once del error is known
 		
 
 class State():

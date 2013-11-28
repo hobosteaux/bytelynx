@@ -58,11 +58,11 @@ Protos = {}
 Protos[0] = (('>H', None), Awk)
 Protos[1] = (('>H', None), Ping)
 Protos[2] = (('>HH', None), InitConn)
-Protos[5] = (('>H16s', None), GetFile)
-Protos[6] = (('>H16s50cQ', '>16s'), FileResponse)
-Protos[7] = (('>H16sH', None), IORequest)
-Protos[8] = (('>H16sH', '>H'), IOResend)
-Protos[9] = (('>H16sHH', None), IOReceive)
+Protos[5] = (('>H20s', None), GetFile)
+Protos[6] = (('>H20s50cQ', '>20s'), FileResponse)
+Protos[7] = (('>H20sH', None), IORequest)
+Protos[8] = (('>H20sH', '>H'), IOResend)
+Protos[9] = (('>H20sHH', None), IOReceive)
 
 def UnpackArray(data, fmtNum):
 	ssize = calcsize(Protos[fmtNum][0][1])
