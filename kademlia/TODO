@@ -1,0 +1,5 @@
+override dictionaries to provide event notifications on key changes
+create MCP -> separate kaedm to a library that is instantuated
+	main conn state
+	  ^
+	kadem

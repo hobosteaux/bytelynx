@@ -1,0 +1,31 @@
+A fully functional DHT
+	Use the Kademlia algorithm for scalability
+	Keys are used to look up nodes on the network
+	Client keys are derived from the client public key hash
+
+Strong crypto
+	Public / private to authenticate peers based on pre-shared keys
+	Use PKI to trade one-time use symmetric keys to encrypt further comms
+
+Overlay Network
+	Be able to route other traffic through the overlay network as a VPN does
+	Should be completely transparent if talking to the correct port
+
+NAT transversal
+	Bore holes through firewalls using STUN
+	Implement uPnP & nat-pmp / PCP
+
+Client / Daemon separation
+	The GUI has no code connection to the daemon
+	Use TCP to pass keys / values to the GUI
+	Pub / sub model so that multiple GUIs can connect to the same daemon
+
+SQLite Backend
+	Store all previous clients for state reload
+	Use for extra functions / plugins (filesharing, chat history)
+	Store all friends / aliases / pub key
+
+Architecture
+	Event-driven
+	No globals
+	Multithreaded-capable
