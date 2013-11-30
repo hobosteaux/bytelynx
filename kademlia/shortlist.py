@@ -66,7 +66,8 @@ class Shortlist():
 	# Gets the next item from the shortlist.
 	# Also marks as contacted.
 	def GetNext(self):
-		if (self.Searched <= K):
+		# We are below the count and have at least one useable contact still.
+		if (self.Searched <= K) and (self.SearchSpace.any(lambda x: not x[0])):
 			item = self.FindMin()
 			item[0] = True
 			self.Searched += 1
@@ -121,7 +122,7 @@ class Shortlist():
 		return maxCon
 
 	def __str__(self):
-		return '%s : %s - %d/%d/%d' % (self.TargetHash, self.Closest, len(self.InProgress), self.Searched, K)
+		return '%s : %s - P:%d F:%d T:%d' % (self.TargetHash, self.Closest, len(self.InProgress), self.Searched, K)
 
 from threading import Thread
 from datetime import datetime
@@ -173,16 +174,18 @@ class Shortlists():
 			# If any of the requests have timed out.
 			if (len(alive) != len(value.InProgress)):
 				value.InProgress = alive
-			try:
-				while (len(value.InProgress) < A):
-					nextMin = value.GetNext()
+			while (len(value.InProgress) < A):
+				nextMin = value.GetNext()
+				# We have no more useable responses.
+				print('Next Min:', nextMin)
+				print('InProgress:', value.InProgress)
+				if (nextMin == None):
+					# No searches are in progress.
+					if (len(value.InProgress) == 0):
+						value.OnFullOrFound(value.TargetHash, value.Closest)
+					break
+				else:
 					self.OnSearch(key, nextMin)
-			# Happens if the list has no more matches.
-			except ValueError:
-				# List is not full, but all contacts have been used.
-				# Also, no searches are currently in progress.
-				if (value.InProgress == 0):
-					self.OnFullOrFound(value.TargetHash, value.Closest)
 
 	# This thread watches for any RPCs that must be made.
 	# It is the only one that should modify the datavalues of the shorts.
