@@ -150,7 +150,7 @@ class Hash():
 
 
 	def ToBase64(self):
-		return base64.b64encode(self.Value)
+		return str(base64.b64encode(self.Value), 'UTF-8')
 
 class Address():
 	IP = ''

@@ -7,6 +7,7 @@ import state
 import protocol
 from listExt import ExtList
 from contact import Address
+from sqlite import dbinterface
 
 # Import Constants
 from KademliaConstants import K # Bucketsize
@@ -18,17 +19,23 @@ class Kademlia():
 	ShortLists = None
 	Buckets = None
 	UDPStack = None
+	DBConn = None
 
 	def __init__(self):
 		# Set global things
 		state.Init()
+
+		self.DBConn = dbinterface()
 
 		self.ShortLists = Shortlists()
 		self.ShortLists.OnSearch += self.SendSearch
 		self.ShortLists.OnFullOrFound += self.EndSearch
 
 		self.Buckets = Buckets()
-		self.Buckets.Update(state.SELF)
+		self.Buckets.OnAdded += self.DBConn.AddContact
+		self.Buckets.OnRemoved += self.DBConn.RemoveContact
+		contacts = self.DBConn.Contacts() + [state.SELF]
+		self.Buckets.Seed(contacts)
 
 		self.UDPStack = Server()
 		self.UDPStack.OnData += self.OnData

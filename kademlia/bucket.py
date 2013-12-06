@@ -4,20 +4,27 @@ from contact import Contact
 from KademliaConstants import K, B
 from listExt import ExtList
 import state
+from event import Event
 
 class Bucket:
 	Contacts = None
 	Waitlist = None
+	OnAdded = None
+	OnRemoved = None
 
 	def __init__(self):
 		self.Contacts = ExtList()
 		self.Waitlist = ExtList()
+		self.OnAdded = Event()
+		self.OnRemoved = Event()
 
-	def Update(self, contact):
+	def Update(self, contact, report=True):
 		if (contact not in self.Contacts):
 			if (len(self.Contacts) <= K):
 				self.Contacts.append(contact)
 				contact.OnDeath += self.ContactDeath
+				if (report):
+					self.OnAdded(contact)
 			elif (len(self.Waitlist) <= K) and (contact not in self.Waitlist):
 				self.Waitlist.append(contact)
 				contact.OnDeath += self.WaitlistDeath
@@ -26,6 +33,7 @@ class Bucket:
 		if (contact in self.Contacts):
 			self.Contacts.remove(contact)
 			contact.OnDeath -= self.ContactDeath
+			self.OnRemoved(contact)
 		if (len(self.Waitlist > 0)):
 			replacement = self.Waitlist[len(self.Waitlist) - 1]
 			self.Contacts.append(replacement)
@@ -43,15 +51,28 @@ class Buckets():
 	Conns = None
 	ConnList = None
 	LastCheck = datetime.now()
+	OnAdded = None
+	OnRemoved = None
 
 	def __init__(self):
+		self.OnAdded = Event()
+		self.OnRemoved = Event()
 		self.Buckets = [Bucket() for i in range(B+1)]
+		for bucket in self.Buckets:
+			bucket.OnAdded += self.OnAdded
+			bucket.OnRemoved += self.OnRemoved
 		self.Conns = {}
 		self.ConnList = ExtList()
 
-	def Update(self, contact):
+	def Seed(self, contacts):
+		"""Function for initial seeding of the buckets.
+		   Will not proc the OnAdded event for the db's sake."""
+		for contact in contacts:
+			self.Update(contact, False)
+
+	def Update(self, contact, report = True):
 		loc = (contact.Hash ^ state.SELF.Hash).SigBit()
-		self.Buckets[loc].Update(contact)
+		self.Buckets[loc].Update(contact, report)
 
 	def GetExact(self, hash, backupLists=False):		
 		sigBit = (state.SELF.Hash ^ hash).SigBit()
