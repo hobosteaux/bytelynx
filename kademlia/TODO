@@ -1,5 +1,2 @@
-override dictionaries to provide event notifications on key changes
-create MCP -> separate kaedm to a library that is instantuated
-	main conn state
-	  ^
-	kadem
+Refresh a bucket if > 15 min have passed with no update?
+	Find random node within range
