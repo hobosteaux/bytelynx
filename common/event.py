@@ -1,6 +1,21 @@
 #!/usr/bin/python3
 
 class Event:
+	"""
+	C# style event.
+
+	Example:
+
+	>>> from common import Event
+	>>> e = Event()
+	>>> e += lambda: print("fired")
+	>>> e()
+	
+	>>> e = Event()
+	>>> e += lambda x: print("fired with arg %s" % x)
+	>>> e('an arg')
+	"""
+
     def __init__(self):
         self.handlers = set()
 

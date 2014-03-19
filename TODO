@@ -64,6 +64,10 @@ Firewall boring
 	UpNP
 	nat-pmp / PCP
 
+Kadmlia
+		Refresh a bucket if > 15 min have passed with no update?
+			Find random node within range
+
 Encryption
 	Cache public keys
 	reject connections to friends if pubkey changes

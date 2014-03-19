@@ -1,138 +1,210 @@
 from datetime import datetime, timedelta
 
-from contact import Contact
+from common import Contact, Event, List as list
 from KademliaConstants import K, B
-from listExt import ExtList
 import state
-from event import Event
 
 class Bucket:
-	Contacts = None
-	Waitlist = None
-	OnAdded = None
-	OnRemoved = None
+	"""
+	.. attribute:: contacts
+		:class:`list` of len :attr:`KademliaConstants.K`
+	.. attribute:: waitlist
+		:class:`list` of len :attr:`KademliaConstants.K`
+	.. attribute:: on_added
+		Event(:class:`event.Event`)
+	.. attribute:: on_removed
+		Event(:class:`event.Event`)
+	"""
 
 	def __init__(self):
-		self.Contacts = ExtList()
-		self.Waitlist = ExtList()
-		self.OnAdded = Event()
-		self.OnRemoved = Event()
+		self.contacts = list()
+		self.waitlist = list()
+		self.on_added = Event()
+		self.on_removed = Event()
 
-	def Update(self, contact, report=True):
-		if (contact not in self.Contacts):
-			if (len(self.Contacts) <= K):
-				self.Contacts.append(contact)
-				contact.OnDeath += self.ContactDeath
+	def update(self, contact, report=True):
+		"""
+		Checks if a new contact is more up to date than one in the bucket.
+
+		:param contact: Newly seen contact.
+		:type contact: :class:`contact.Contact`
+		:param report: Pop the :func:`~bucket.Bucket.on_added` event or not.
+		"""
+		if (contact not in self.contacts):
+			if (len(self.contacts) <= K):
+				self.contacts.append(contact)
+				contact.on_death += self.contact_death
 				if (report):
-					self.OnAdded(contact)
-			elif (len(self.Waitlist) <= K) and (contact not in self.Waitlist):
-				self.Waitlist.append(contact)
-				contact.OnDeath += self.WaitlistDeath
+					self.on_added(contact)
+			elif (len(self.waitlist) <= K) and (contact not in self.waitlist):
+				self.waitlist.append(contact)
+				contact.on_death += self.waitlist_death
 		
-	def ContactDeath(self, contact):
-		if (contact in self.Contacts):
-			self.Contacts.remove(contact)
-			contact.OnDeath -= self.ContactDeath
-			self.OnRemoved(contact)
-		if (len(self.Waitlist > 0)):
-			replacement = self.Waitlist[len(self.Waitlist) - 1]
-			self.Contacts.append(replacement)
-			waitlist.OnDeath += self.ContactDeath
-			self.Waitlist.remove(replacement)
-			waitlist.OnDeath -= self.WaitlistDeath
+	def contact_death(self, contact):
+		"""
+		Event handler for when a contact expires that is in a list.
 
-	def WaitlistDeath(self, contact):
-		if (contact in self.Waitlist):
-			self.Waitlist.remove(contact)
-			contact.OnDeath -= self.WaitlistDeath
+		:param contact: Dieing contact.
+		:type contact: :class:`contact.Contact`
+		"""
+		if (contact in self.contacts):
+			self.contacts.remove(contact)
+			contact.on_death -= self.contact_death
+			self.on_removed(contact)
+		if (len(self.waitlist > 0)):
+			replacement = self.waitlist[len(self.waitlist) - 1]
+			self.contacts.append(replacement)
+			waitlist.on_death += self.contact_death
+			self.waitlist.remove(replacement)
+			waitlist.on_death -= self.waitlist_death
+
+	def waitlist_death(self, contact):
+		if (contact in self.waitlist:
+			self.waitlist.remove(contact)
+			contact.on_death -= self.waitlist_death
+
+CHECK_MIN = 1.5
+"""How often to check for dead clients."""
+DEL_MIN = 10
+"""Minutes of staleness allowed for clients."""
 
 class Buckets():
-	Buckets = None
-	Conns = None
-	ConnList = None
-	LastCheck = datetime.now()
-	OnAdded = None
-	OnRemoved = None
+	"""
+	Primary interface to the list of :class:`kademlia.Bucket`.
+
+	.. attribute:: _buckets
+		A list of buckets `~kademlia.K` big.
+	.. attribute:: _conns
+		All currently alive seen connections.
+		{:class:`~common.Address` : :class:`~common.Contact}
+	.. attricute:: _last_check
+		Last time that the _conns we checked for liveliness.
+	.. attribute:: on_added
+		Event called when a new contact is added to a bucket.
+		Event(:class:`~common.Client`)
+	.. attribute:: on_removed
+		Event called when a contact is removed from bucket.
+		Event(:class:`~common.Client`)
+	"""
 
 	def __init__(self):
-		self.OnAdded = Event()
-		self.OnRemoved = Event()
-		self.Buckets = [Bucket() for i in range(B+1)]
-		for bucket in self.Buckets:
-			bucket.OnAdded += self.OnAdded
-			bucket.OnRemoved += self.OnRemoved
-		self.Conns = {}
-		self.ConnList = ExtList()
+		self._last_check = datetime.now()
+		self.on_added = Event()
+		self.on_removed = Event()
+		self._buckets = [Bucket() for i in range(B+1)]
+		for bucket in self._buckets:
+			bucket.on_added += self.on_added
+			bucket.on_removed += self.on_removed
+		self._conns = {}
 
-	def Seed(self, contacts):
-		"""Function for initial seeding of the buckets.
-		   Will not proc the OnAdded event for the db's sake."""
+	def seed(self, contacts):
+		"""
+		Function for initial seeding of the _buckets.
+		Will not proc the on_added event for the db's sake.
+
+		:param contacts: The contacts to add.
+		:type contacts: [:class:`contact.Contact`]
+		"""
 		for contact in contacts:
-			self.Update(contact, False)
+			self.update(contact, False)
 
-	def Update(self, contact, report = True):
-		loc = (contact.Hash ^ state.SELF.Hash).SigBit()
-		self.Buckets[loc].Update(contact, report)
+	def update(self, contact, report = True):
+		"""
+		Updates a contact within the correct bucket.
 
-	def GetExact(self, hash, backupLists=False):		
-		sigBit = (state.SELF.Hash ^ hash).SigBit()
-		if (backupLists):
-			return self.Buckets[sigBit].Contacts.first(lambda x: x.Hash == hash)
+		:param contact: The seen contact.
+		:type contact: :class:`contact.Contact`
+		:param report: Pop the :func:`~bucket.Bucket.on_added` event or not.
+		"""
+		loc = (contact.hash ^ state.SELF.hash).sig_bit()
+		self._buckets[loc].update(contact, report)
+
+	def get_exact(self, hash, use_waitlist=False):
+		"""
+		Gets an exact contact from the lists.
+
+		:param hash: The hash to retreive.
+		:type hash: :class:`common.Hash`
+		:param use_waitlist: Search through the waitlists as well.
+		:type use_waitlist: bool.
+		"""		
+		sig_bit = (state.SELF.hash ^ hash).sig_bit()
+		if (not use_waitlist):
+			return self._buckets[sig_bit].contacts.first(lambda x: x.hash == hash)
 		else:
-			return (self.Buckets[sigBit].Contacts + self.Buckets[sigBit].Waitlist).first(lambda x: x.Hash == hash)
+			return (self._buckets[sig_bit].contacts + self._buckets[sig_bit].waitlist).first(lambda x: x.hash == hash)
 
-	def GetClosest(self, hash, count=K):
-		targetHash = (state.SELF.Hash ^ hash)
-		sigBit = targetHash.SigBit()
-		contacts = ExtList(self.Buckets[sigBit].Contacts)
+	def get_closest(self, hash, count=K):
+		"""
+		Gets the closest n contacts to a hash.
+
+		:param hash: The hash to compare to.
+		:type hash: :class:`common.Hash`
+		:param count: Number of contacts to return.
+		:type count: int.
+		"""
+		targethash = (state.SELF.hash ^ hash)
+		sig_bit = targethash.sig_bit()
+		contacts = list(self._buckets[sig_bit].contacts)
 		# If we have a perfect bucket size, return all.
 		# This will NEVER proc for own bucket unless 20 key collisions.
 		# Aka never
-		if (len(self.Buckets[sigBit].Contacts) == count):
+		if (len(self._buckets[sig_bit].contacts) == count):
 			return contacts
 
 		# Sorted Indices (for prox to the contact).
 		# Ignore the one that is its own bucket to avoid any recursion.
-		si = sorted([x for x in range(1,B)], key=lambda x: abs(x - sigBit))[1:]
+		si = sorted([x for x in range(1,B)], key=lambda x: abs(x - sig_bit))[1:]
 
 		# Yeah, yeah, we are ignoring the farthest away contact.
 		for dindex in range(0, len(si) // 2):
-			contacts += self.Buckets[si[dindex * 2]].Contacts
-			contacts += self.Buckets[si[(dindex * 2) + 1]].Contacts
+			contacts += self._buckets[si[dindex * 2]].contacts
+			contacts += self._buckets[si[(dindex * 2) + 1]].contacts
 			if (len(contacts) >= B):
-				return sorted(contacts, key=lambda x: targetHash.AbsDiff(state.SELF.Hash ^ x.Hash))[:20]
+				return sorted(contacts, key=lambda x: targethash.AbsDiff(state.SELF.hash ^ x.hash))[:20]
 		return contacts
 
-	def Translate(self, address, hash):
+	def translate(self, address, hash_):
+		"""
+		Translates an address and hash to a client handle.
+
+		:return: A cached client.
+		:rtype: :class:`contact.Contact`
+		"""
 		# We have seen this one before and it has not expired.
-		if (address in self.Conns):
-			contact = self.Conns[address]
+		if (address in self._conns):
+			contact = self._conns[address]
 		else:
 			try:
 				# Check if it is in the buckets.
-				contact = self.GetExact(hash, True)
+				contact = self.get_exact(hash_, True)
 			except:
 				# Make a new one
-				contact = Contact(address, hash)
-				contact.OnDeath += self.Cleanup
-				self.Conns[address] = contact
-		contact.LastSeen = datetime.now()
+				contact = Contact(address, hash_)
+				contact.on_death += self.cleanup
+				self._conns[address] = contact
+		contact.last_seen = datetime.now()
 
-		if (datetime.now() - self.LastCheck > timedelta(minutes=1)):
-			self.LastCheck = datetime.now()
-			delTime = timedelta(minutes=10)
-			delList = self.ConnList.where(lambda x: datetime.now() - x.LastSeen > delTime)
-			self.ConnList = self.ConnList.where(lambda x: datetime.now() - x.LastSeen <= delTime)
+		if (datetime.now() - self.last_check > timedelta(minutes=CHECK_MIN)):
+			self.last_check = datetime.now()
+			delTime = timedelta(minutes=DEL_MIN)
+			delList = list(self._conns.values()).where(lambda x: datetime.now() - x.last_seen > delTime)
 
 			for item in delList:
-				item.OnDeath -= self.Cleanup
-				del(self.Conns[item.Address])
+				item.on_death -= self.cleanup
+				del(self._conns[item.Address])
 
 		return contact
 
-	def Cleanup(self, contact):
-		if (contact.Address in self.Conns):
-			self.ConnList.remove(contact)
-			del(self.Conns[contact.Address])
-		contact.OnDeath -= self.Cleanup
+	def cleanup(self, contact):
+		"""
+		Removes a contact from the connection list.
+		Calls contact.on_death no matter what.
+
+		:param contact: Contact to remove.
+		:type contact: :class:`contact.Contact`
+		"""
+		if (contact.address in self._conns):
+			del(self._conns[contact.address])
+		contact.on_death -= self.cleanup
 
