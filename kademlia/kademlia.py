@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 # Import structures
-from bucket import Buckets
-from shortlist import Shortlists
 import state
-import protocol
+from .bucket import Buckets
+from .shortlist import Shortlists
 from common import dbinterface, Address, List
 from net import Server
+import net.protocol
 
 # Import Constants
-from constants import K # Bucketsize
-from constants import B	# Keysize
-from constants import A # Paralellism
+from .constants import K # Bucketsize
+from .constants import B # Keysize
+from .constants import A # Paralellism
 
 
 class Kademlia():
@@ -20,29 +20,26 @@ class Kademlia():
 	packets transferred, this also must be the hub
 	of all network traffic.	
 	"""
-	ShortLists = None
-	Buckets = None
-	UDPStack = None
-	DBConn = None
+	shortlists = None
+	buckets = None
+	udp_stack = None
+	db_conn = None
 
 	def __init__(self):
-		# Set global things
-		state.Init()
+		self.db_conn = dbinterface()
 
-		self.DBConn = dbinterface()
+		self.shortlists = Shortlists()
+		self.shortlists.on_search += self.send_search
+		self.shortlists.on_full_or_found += self.end_search
 
-		self.ShortLists = Shortlists()
-		self.ShortLists.OnSearch += self.SendSearch
-		self.ShortLists.OnFullOrFound += self.EndSearch
+		self.buckets = Buckets()
+		self.buckets.on_added += self.db_conn.add_contact
+		self.buckets.on_removed += self.db_conn.rm_contact
+		contacts = self.db_conn.contacts() + [state.SELF]
+		self.buckets.seed(contacts)
 
-		self.Buckets = Buckets()
-		self.Buckets.OnAdded += self.DBConn.AddContact
-		self.Buckets.OnRemoved += self.DBConn.RemoveContact
-		contacts = self.DBConn.Contacts() + [state.SELF]
-		self.Buckets.Seed(contacts)
-
-		self.UDPStack = Server()
-		self.UDPStack.on_data += self.on_data
+		self.udp_stack = Server()
+		self.udp_stack.on_data += self.on_data
 
 
 	def on_data(self, data, address):
@@ -55,18 +52,18 @@ class Kademlia():
 		:type address: :class:`~common.Address`
 		"""
 		print(data[protocol.TYPETAG], '<-', address)
-		contact = self.Buckets.Translate(address, data[protocol.HASHTAG])
-		# Update Buckets.
-		self.Buckets.Update(contact)
+		contact = self.buckets.translate(address, data[protocol.HASHTAG])
+		# update buckets.
+		self.buckets.update(contact)
 		# Deal with data.
 		if (data[protocol.TYPETAG] == protocol.PONGMSG):
-			contact.AwkPing(data[protocol.PKTIDTAG], data[protocol.HASHTAG])
+			contact.awk_ping(data[protocol.PKTIDTAG], data[protocol.HASHTAG])
 		else:
 			# Awk the packet.
 			self.send_pong(contact, data[protocol.PKTIDTAG])
 			# Find node message, send response.
 			if (data[protocol.TYPETAG] == protocol.FINDNODEMSG):
-				contacts = self.Buckets.GetClosest(data[protocol.TARGETHASHTAG])
+				contacts = self.buckets.get_closest(data[protocol.TARGETHASHTAG])
 				ret = ExtList()
 				for i in contacts:
 					ret.append({protocol.HASHTAG : i.Hash,\
@@ -77,34 +74,34 @@ class Kademlia():
 				self.send_data(contact, retData)
 			# Found node message, add to the tables.
 			elif (data[protocol.TYPETAG] == protocol.FOUNDNODEMSG):
-				contacts = [self.Buckets.Translate(\
+				contacts = [self.buckets.translate(\
 					Address(x[protocol.IPTAG], x[protocol.PORTTAG]),\
 						x[protocol.HASHTAG])\
 					for x in data[protocol.EXTTAG]]
-				self.ShortLists.AddResponse(data[protocol.TARGETHASHTAG],\
-					contact.Address, contacts)
+				self.shortlists.add_response(data[protocol.TARGETHASHTAG],\
+					contact.address, contacts)
 		
 			elif (data[protocol.TYPETAG] == protocol.PAYLOADMSG):
 				pass
 
 	def send_data(self, contact, data):
 		"""
-		Sends data to a remote contact and marks down a ping.
+		sends data to a remote contact and marks down a ping.
 
 		:param contact: Contact to send data to.
 		:type contact: :class:`~common.Contact`
 		:param data: Dictionary of the attributes and values.
 		:type data: {}
 		"""
-		# Update pings.
-		data[protocol.PKTIDTAG] = contact.AddPing()
+		# update pings.
+		data[protocol.PKTIDTAG] = contact.add_ping()
 		data[protocol.HASHTAG] = state.SELF.Hash
-		#print('Sending ', data, 'to', contact)
-		self.UDPStack.Send(contact.Address, data)
+		#print('sending ', data, 'to', contact)
+		self.udp_stack.send(contact.address, data)
 
 	def send_ping(self, addr):
 		"""
-		Send a raw ping to a contact.
+		send a raw ping to a contact.
 		Used to alert them to your presence.
 
 		:param addr: Address to send it to.
@@ -113,7 +110,7 @@ class Kademlia():
 		pingData = { protocol.TYPETAG : protocol.PINGMSG,\
 			protocol.PKTIDTAG : 0,\
 			protocol.HASHTAG : state.SELF.Hash }
-		self.UDPStack.Send(addr, pingData)
+		self.udp_stack.send(addr, pingData)
 
 	def send_pong(self, contact, pkt_id):
 		"""
@@ -127,7 +124,7 @@ class Kademlia():
 		data = { protocol.TYPETAG : protocol.PONGMSG,\
 			protocol.PKTIDTAG : pkt_id,\
 			protocol.HASHTAG : state.SELF.Hash }
-		self.UDPStack.Send(contact.Address, data)
+		self.udp_stack.send(contact.Address, data)
 
 	def init_search(self, hash_):
 		"""
@@ -137,12 +134,12 @@ class Kademlia():
 		:type hash_: :class:`~common.Hash`
 		"""
 		# Get closest contacts.
-		contacts = self.Buckets.GetClosest(hash_)
+		contacts = self.buckets.get_closest(hash_)
 		# Init the search.
-		self.ShortLists.Start(hash_, contacts)
+		self.shortlists.start(hash_, contacts)
 
-	# Sends out a packet to a single ip.
-	def SendSearch(self, hash_, contact):
+	# sends out a packet to a single ip.
+	def send_search(self, hash_, contact):
 		"""
 		Sends a find node message out to a contact.
 
@@ -155,7 +152,7 @@ class Kademlia():
 				protocol.TARGETHASHTAG : hash_}
 		self.send_data(contact, data)
 
-	def EndSearch(self, hash_, contact):
+	def end_search(self, hash_, contact):
 		"""
 		Event proc'd on the end of a search.
 		"""

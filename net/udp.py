@@ -1,8 +1,8 @@
 import socket
-from protocol import Decoder, Encoder
-from contact import Address
-from event import Event
 from threading import Thread
+
+from .protocol import decoder, encoder
+from common import Address, Event
 import state
 
 class Server():
@@ -16,7 +16,7 @@ class Server():
 
 	def __init__(self):
 		self.on_data = Event()
-		self._bind_address = ('', state.SELF.Address.Port)
+		self._bind_address = ('', state.SELF.address.port)
 		self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self._sock.bind(self._bind_address)
 		self._listener_thread = Thread(target=self.listen)
@@ -35,7 +35,7 @@ class Server():
 
 			#try:
 			address = Address(address[0], address[1])
-			data = Decoder(data)
+			data = decoder(data)
 			self.on_data(data, address)
 
 			#except:
@@ -51,5 +51,5 @@ class Server():
 		:type tags: {}
 		"""
 		print(tags['type'], '->', address)
-		data = Encoder(tags)
+		data = encoder(tags)
 		self._sock.sendto(data, address.AsTuple())

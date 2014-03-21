@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 import sqlite3
-from contact import Contact, Address, Hash
+
+from .contact import Contact
+from .address import Address
+from .hash import Hash
 import state
 
 INITSTATEMENT = '''CREATE TABLE IF NOT EXISTS swarm

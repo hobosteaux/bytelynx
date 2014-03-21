@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from common import Contact, Event, List as list
-from KademliaConstants import K, B
+from .constants import K, B
 import state
 
 class Bucket:
@@ -59,7 +59,7 @@ class Bucket:
 			waitlist.on_death -= self.waitlist_death
 
 	def waitlist_death(self, contact):
-		if (contact in self.waitlist:
+		if (contact in self.waitlist):
 			self.waitlist.remove(contact)
 			contact.on_death -= self.waitlist_death
 
@@ -116,7 +116,7 @@ class Buckets():
 		:type contact: :class:`contact.Contact`
 		:param report: Pop the :func:`~bucket.Bucket.on_added` event or not.
 		"""
-		loc = (contact.hash ^ state.SELF.hash).sig_bit()
+		loc = (contact.hash ^ state.SELF.hash).significant_bit()
 		self._buckets[loc].update(contact, report)
 
 	def get_exact(self, hash, use_waitlist=False):
@@ -128,11 +128,11 @@ class Buckets():
 		:param use_waitlist: Search through the waitlists as well.
 		:type use_waitlist: bool.
 		"""		
-		sig_bit = (state.SELF.hash ^ hash).sig_bit()
+		significant_bit = (state.SELF.hash ^ hash).significant_bit()
 		if (not use_waitlist):
-			return self._buckets[sig_bit].contacts.first(lambda x: x.hash == hash)
+			return self._buckets[significant_bit].contacts.first(lambda x: x.hash == hash)
 		else:
-			return (self._buckets[sig_bit].contacts + self._buckets[sig_bit].waitlist).first(lambda x: x.hash == hash)
+			return (self._buckets[significant_bit].contacts + self._buckets[significant_bit].waitlist).first(lambda x: x.hash == hash)
 
 	def get_closest(self, hash, count=K):
 		"""
@@ -144,17 +144,17 @@ class Buckets():
 		:type count: int.
 		"""
 		targethash = (state.SELF.hash ^ hash)
-		sig_bit = targethash.sig_bit()
-		contacts = list(self._buckets[sig_bit].contacts)
+		significant_bit = targethash.significant_bit()
+		contacts = list(self._buckets[significant_bit].contacts)
 		# If we have a perfect bucket size, return all.
 		# This will NEVER proc for own bucket unless 20 key collisions.
 		# Aka never
-		if (len(self._buckets[sig_bit].contacts) == count):
+		if (len(self._buckets[significant_bit].contacts) == count):
 			return contacts
 
 		# Sorted Indices (for prox to the contact).
 		# Ignore the one that is its own bucket to avoid any recursion.
-		si = sorted([x for x in range(1,B)], key=lambda x: abs(x - sig_bit))[1:]
+		si = sorted([x for x in range(1,B)], key=lambda x: abs(x - significant_bit))[1:]
 
 		# Yeah, yeah, we are ignoring the farthest away contact.
 		for dindex in range(0, len(si) // 2):

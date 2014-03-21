@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
-from event import Event
-from extlist import List as list
-from ..Kademlia.Constants import B
+from .event import Event
+from .list import List as list
 
 TIMEOUTMULT = 3
 """Multiplier as to how long it takes for a ping to time out"""

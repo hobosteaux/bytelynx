@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 from collections import namedtuple
 
-from KademliaConstants import K, A
+from .constants import K, A
 import state
-from contact import Contact, Address, Hash
-from event import Event
-from listExt import ExtList
+from common import Contact, Address, Hash, Event
+from common import List as list
 
 class SearchContact():
 	"""
@@ -16,6 +15,7 @@ class SearchContact():
 	.. attribute:: contact
 		The contact's address.
 	"""
+
 	def __init__(self, contacted, contact):
 		self.contacted = contacted
 		self.contact = contact
@@ -47,7 +47,7 @@ class Shortlist():
 		:param initialContacts: Contacts to start the shorlist with.
 		:type initialContacts: [:class:``]
 		"""
-		self.search_space = ExtList(SearchContact(False, x for x in initialContacts
+		self.search_space = list(SearchContact(False, x) for x in initialContacts)
 		self.own_hash = state.SELF.hash_
 		self.target_hash = target_hash
 		self.on_full_or_found = Event()
@@ -87,7 +87,7 @@ class Shortlist():
 		"""
 		Filters all searches to remove the one given to it.
 		"""
-		self.in_progress = ExtList(filter(lambda x: x.address != addr, self.in_progress))
+		self.in_progress = list(filter(lambda x: x.address != addr, self.in_progress))
 
 	def _try_add(self, contact):
 		"""
@@ -255,7 +255,7 @@ class Shortlists():
 	def _clean_lists(self):
 		#print(self._shortlists)
 		for hash_, shortlist in self._shortlists.items():
-			alive = ExtList(filter(lambda x: (datetime.now()-x.time).seconds > 3, shortlist.in_progress))
+			alive = list(filter(lambda x: (datetime.now()-x.time).seconds > 3, shortlist.in_progress))
 			# If any of the requests have timed out.
 			if (len(alive) != len(shortlist.in_progress)):
 				shortlist.in_progress = alive

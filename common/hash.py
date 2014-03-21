@@ -86,7 +86,7 @@ class Hash():
 		return str_data
 
 	@property
-	def base_64(self):
+	def base64(self):
 		"""
 		:returns: B64 encoded string.
 		"""

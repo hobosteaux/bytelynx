@@ -3,49 +3,49 @@ import os
 import base64
 
 from kademlia import Kademlia
-from menu import Menu, MenuOption
-from contact import Address, Contact, Hash
+from ui import Menu, MenuOption
+from common import Address, Contact, Hash
 import state
 
 KADEM = Kademlia()
 
-def PrintStatus():
-	print('\t', state.SELF.Address)
-	print('\t', state.SELF.Hash.ToBase64())
+def print_status():
+	print('\t', state.SELF.address)
+	print('\t', state.SELF.hash.base64)
 
-def PrintBuckets():
-	for idx, bucket in enumerate(KADEM.Buckets.Buckets):
-		if (len(bucket.Contacts) > 0):
-			print(idx, bucket.Contacts)
+def print_buckets():
+	for idx, bucket in enumerate(KADEM.buckets._buckets):
+		if (len(bucket.contacts) > 0):
+			print(idx, bucket.contacts)
 
-def PrintShortlists():
-	for item in KADEM.ShortLists.Shortlists:
-		print(KADEM.ShortLists.Shortlists[item])
+def print_shortlistss():
+	for item in KADEM.shortlists._shortlists:
+		print(KADEM.shortlists._shortlists[item])
 
-def AddContact():
+def add_contact():
 	ip = input("IP Address [127.0.0.1]: ")
 	if (not ip):
 		ip = '127.0.0.1'
 	port = int(input("Port: "))
-	addr = Address(ip, port)
-	KADEM.SendPing(addr)
+	addr = address(ip, port)
+	KADEM.send_ping(addr)
 
-def SearchContact():
-	hash = input("Enter the hash [rand]: ")
-	if (not hash):
-		hash = Hash(os.urandom(20))
+def search_contact():
+	hash_ = input("Enter the hash [rand]: ")
+	if (not hash_):
+		hash_ = Hash(os.urandom(20))
 	else:
-		hash = Hash(base64.b64decode(bytes(hash, 'UTF-8')))
-	KADEM.InitSearch(hash)
+		hash_ = Hash(base64.b64decode(bytes(hash_, 'UTF-8')))
+	KADEM.init_search(hash_)
 	
 
 if __name__ == '__main__':
-	mainMenu = Menu([\
-		MenuOption('Client Status', PrintStatus),\
-		MenuOption('Bucket Status', PrintBuckets),\
-		MenuOption('Shorty Status', PrintShortlists),\
-		MenuOption('Add Contact', AddContact),\
-		MenuOption('Search for Contact', SearchContact)\
+	main_menu = Menu([\
+		MenuOption('Client Status', print_status),\
+		MenuOption('Bucket Status', print_buckets),\
+		MenuOption('Shorty Status', print_shortlistss),\
+		MenuOption('Add Contact', add_contact),\
+		MenuOption('Search for Contact', search_contact)\
 	])
 
-	mainMenu.Display() 
+	main_menu.display() 
