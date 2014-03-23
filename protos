@@ -1,4 +1,27 @@
+General form:
+[proto header, byte version, ...]
+v1 proto	[char mType, ...]
+	mTypes:
+		DH requests
+		DH encapsulated
+		AES encapsulated
+
+DH requests:
+	[all DH handshake messages]
+
+DH encapsulated:
+	[PKI handshakes]
+	PKI encapsulated:
+		[AES handshake]
+	[DHT messages]
+
+AES encapsulated:
+	[data messages]
+
+
+
 Max pkt: 65,507 bytes
+useable max: 512 bytes
 
 # Sent to initiate a file transfer
 Init get -> [char mType, ushort id, 160bit hash]

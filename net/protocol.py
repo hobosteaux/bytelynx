@@ -3,6 +3,7 @@
 import struct
 
 from common import Hash, List as list
+#from  tag import Tag, HashTag, AddressTag
 
 EXTTAG = 'payload'
 IPTAG = 'ip'
