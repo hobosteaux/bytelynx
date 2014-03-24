@@ -1,4 +1,5 @@
 import struct
+from collections import namedtuple
 
 from common import Hash, Address
 from kademlia import B # Hashsize in bytes.
@@ -57,7 +58,7 @@ class Tag():
 class HashTag(Tag):
 
 	def __init__(self):
-		super().__init__('hash', "%ss" %  B / 8)
+		super().__init__('hash', "%ss" %  (B // 8))
 
 	@property
 	def _encoded(self):
@@ -82,6 +83,45 @@ class AddressTag(Tag):
 	def encoded(self, value):
 		raw = struct.unpack(self.tag_encoded, value)
 		self._value = Address('.'.join(str(x) for x in raw[:4]), raw[4])
+
+Node = namedtuple('Node', 'hash address')
+"""Quick struct for the output of :class:`~net.tag.NodeTag`"""
+
+class NodeTag(Tag):
+	"""
+	Represents a Node.
+	Encapsulates an address and a hash.
+	.. note::
+		This class breaks convention by taking a :class:`common.Contact`
+		object, but returning the Node namedtuple.
+		This is because the translation to a Contact object must be
+		done by the kademlia contacts table.
+	"""
+
+	def __init__(self):
+		super().__init__('contact', '%ss4BH' % (B // 8))
+
+	@Tag.value.setter
+	def value(self, contact):
+		"""
+		:param value: The contact to serialize.
+		:type value: :class:`common.Contact`
+		"""
+		self._value = Node(contact.hash, contact.address)
+
+	@property
+	def _encoded(self):
+		return struct.pack(self.tag_encoded,
+			*([self._value.hash.value] +
+			[int(x) for x in self._value.address.ip.split('.')] +
+			[self._value.address.port]))
+
+	@Tag.encoded.setter
+	def encoded(self, value):
+		raw = struct.unpack(self.tag_encoded, value)
+		self._value = Node(Hash(raw[0]),
+			Address('.'.join(str(x) for x in raw[1:5]), raw[5]))
+		
 
 class ListTag(Tag):
 	"""

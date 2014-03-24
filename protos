@@ -1,6 +1,6 @@
 General form:
 [proto header, byte version, ...]
-v1 proto	[char mType, ...]
+v1 proto	[char mType, uint pktid, ...]
 	mTypes:
 		DH requests
 		DH encapsulated
