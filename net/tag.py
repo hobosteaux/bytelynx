@@ -3,11 +3,7 @@ from collections import namedtuple
 
 from common import Hash, Address
 from kademlia import B # Hashsize in bytes.
-
-ENDIAN = '>'
-"""The symbol for struct.[un]pack's endianess"""
-SIZE_SYMBOL = ENDIAN + 'H'
-"""The tag preceeding every value for the size of it in bytes"""
+from .common import *
 
 class Tag():
 	"""
@@ -27,7 +23,7 @@ class Tag():
 		Calls self._encoded (overloaded) and cats the len on the front.
 		"""
 		d = self._encoded
-		return struct.pack(SIZE_SYMBOL, len(d)) + d
+		return struct.pack(ENDIAN + SIZE_SYMBOL, len(d)) + d
 
 	@property
 	def _encoded(self):
@@ -147,7 +143,7 @@ class ListTag(Tag):
 		while x < len(in_bytes):
 			# Grab the size.
 			print(x)
-			sz = struct.unpack(SIZE_SYMBOL,
+			sz = struct.unpack(ENDIAN + SIZE_SYMBOL,
 							in_bytes[x : x + self._header_size])[0]
 			x += self._header_size
 			a.append(self.inner_tag.to_value(in_bytes[x : x + sz]))

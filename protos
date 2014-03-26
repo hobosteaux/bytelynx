@@ -18,10 +18,17 @@ DH encapsulated:
 AES encapsulated:
 	[data messages]
 
+protocol:
+	get packet & tear off header
+	from pktid, enum to message type
+		decode the inner protocol
+		throw event for keys if needed?
+			(enum type)
 
 
-Max pkt: 65,507 bytes
-useable max: 512 bytes
+Max pkt: 65,507 bytes (chunked)
+Min maximum pkt size: 576 bytes -> 512 useable
+Common MTU: 1500 -> 1408
 
 # Sent to initiate a file transfer
 Init get -> [char mType, ushort id, 160bit hash]
