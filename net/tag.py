@@ -10,9 +10,9 @@ class Tag():
 	Construct to transform a data value to encoded data and back.
 	"""
 
-	def __init__(self, tag_string, tag_encoded):
-		self.tag_string = tag_string
-		self.tag_encoded = ENDIAN + tag_encoded
+	def __init__(self, name, tag_struct):
+		self.name = name
+		self.tag_struct = ENDIAN + tag_struct
 		self._value = None
 		self._header_size = struct.calcsize(SIZE_SYMBOL)
 
@@ -27,13 +27,13 @@ class Tag():
 
 	@property
 	def _encoded(self):
-		return struct.pack(self.tag_encoded, self._value)
+		return struct.pack(self.tag_struct, self._value)
 
 	@encoded.setter
 	def encoded(self, value):
 		# Grab the first value.
 		# Since this is a simple setter, there should only ever be one.
-		self._value = struct.unpack(self.tag_encoded)[0]
+		self._value = struct.unpack(self.tag_struct)[0]
 
 	def to_value(self, encoded):
 		self.encoded = encoded
@@ -71,13 +71,13 @@ class AddressTag(Tag):
 
 	@property
 	def _encoded(self):
-		return struct.pack(self.tag_encoded,
+		return struct.pack(self.tag_struct,
 			*([int(x) for x in self._value.ip.split('.')] +
 				[self._value.port]))
 
 	@Tag.encoded.setter
 	def encoded(self, value):
-		raw = struct.unpack(self.tag_encoded, value)
+		raw = struct.unpack(self.tag_struct, value)
 		self._value = Address('.'.join(str(x) for x in raw[:4]), raw[4])
 
 Node = namedtuple('Node', 'hash address')
@@ -107,14 +107,14 @@ class NodeTag(Tag):
 
 	@property
 	def _encoded(self):
-		return struct.pack(self.tag_encoded,
+		return struct.pack(self.tag_struct,
 			*([self._value.hash.value] +
 			[int(x) for x in self._value.address.ip.split('.')] +
 			[self._value.address.port]))
 
 	@Tag.encoded.setter
 	def encoded(self, value):
-		raw = struct.unpack(self.tag_encoded, value)
+		raw = struct.unpack(self.tag_struct, value)
 		self._value = Node(Hash(raw[0]),
 			Address('.'.join(str(x) for x in raw[1:5]), raw[5]))
 		
@@ -124,12 +124,12 @@ class ListTag(Tag):
 	A tag that stands for a list of items.
 	"""
 
-	def __init__(self, tag_string, inner_tag):
+	def __init__(self, name, inner_tag):
 		"""
 		:param inner_tag: The tag inside the array.
 		:type inner_tag: :class:`~net.tag.Tag` base
 		"""
-		super().__init__(tag_string, '')
+		super().__init__(name, '')
 		self.inner_tag = inner_tag
 
 	@property

@@ -4,7 +4,7 @@
 from common.exceptions import *
 
 
-class CryptoModules():
+class CryptoModule():
 	"""
 	Interface for all crypto modultes to follow.
 	"""
