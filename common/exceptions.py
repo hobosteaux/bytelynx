@@ -4,3 +4,7 @@ class AbstractException(Exception):
 		if message is None:
 			message = "This function must be overridden by the inheriting class"
 		super().__init__(message)
+
+class ProtocolError(Exception):
+	"""Exception thrown if decoding goes awry."""
+	pass

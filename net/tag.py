@@ -23,7 +23,7 @@ class Tag():
 		Calls self._encoded (overloaded) and cats the len on the front.
 		"""
 		d = self._encoded
-		return struct.pack(ENDIAN + SIZE_SYMBOL, len(d)) + d
+		return struct.pack(SIZE_SYMBOL, len(d)) + d
 
 	@property
 	def _encoded(self):
@@ -33,7 +33,7 @@ class Tag():
 	def encoded(self, value):
 		# Grab the first value.
 		# Since this is a simple setter, there should only ever be one.
-		self._value = struct.unpack(self.tag_struct)[0]
+		self._value = struct.unpack(self.tag_struct, value)[0]
 
 	def to_value(self, encoded):
 		self.encoded = encoded
@@ -117,6 +117,23 @@ class NodeTag(Tag):
 		raw = struct.unpack(self.tag_struct, value)
 		self._value = Node(Hash(raw[0]),
 			Address('.'.join(str(x) for x in raw[1:5]), raw[5]))
+
+
+class StringTag(Tag):
+	"""
+	A tag that stands for a variable-length string.
+	"""
+	
+	def __init__(self, name):
+		super().__init__(name, '')
+	
+	@property
+	def _encoded(self):
+		return bytes(self._value, 'utf-8')
+
+	@Tag.encoded.setter
+	def encoded(self, value):
+		self._value = value.decode('utf-8')
 		
 
 class ListTag(Tag):
@@ -142,8 +159,7 @@ class ListTag(Tag):
 		x = 0
 		while x < len(in_bytes):
 			# Grab the size.
-			print(x)
-			sz = struct.unpack(ENDIAN + SIZE_SYMBOL,
+			sz = struct.unpack(SIZE_SYMBOL,
 							in_bytes[x : x + self._header_size])[0]
 			x += self._header_size
 			a.append(self.inner_tag.to_value(in_bytes[x : x + sz]))

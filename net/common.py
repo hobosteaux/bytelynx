@@ -14,8 +14,4 @@ VERSION_SYMBOL = ENDIAN + 'B'
 TYPE_SYMBOL = ENDIAN + 'B'
 """The type of message"""
 ID_SYMBOL = ENDIAN + 'I'
-"""The pkt_id size"""
-#TODO: find correct symbol
-
-class ProtocolError(Exception)
-"""Exception thrown if decoding goes awry."""
+"""The pkt_id"""

@@ -1,5 +1,6 @@
-from .tag import Tag, HashTag, AddressTag, NodeTag
-from .common import *
+from net.tag import *
+from net.common import *
+import net.tagconstants as Tags
 from common.exceptions import *
 
 class CryptoHandlers():
@@ -29,13 +30,13 @@ class Message():
 		"""
 		ret_data = b''
 		if len(self.tags) > 0:
-			for tag in tags:
+			for tag in self.tags:
 				ret_data += tag.to_encoded(data[tag.name])
 		if len(self.submessages) > 0:
 			# Encode the msg type.
-			mtype = data[TYPETAG]
+			mtype = data[Tags.TYPE]
 			ret_data += struct.pack(TYPE_SYMBOL, mtype)
-			ret_data += self.submessages[mtype].encode(data[PAYLOAD], crypto)
+			ret_data += self.submessages[mtype].encode(data[Tags.PAYLOAD], crypto)
 		return ret_data
 
 	def decode(self, data, crypto):
@@ -50,17 +51,18 @@ class Message():
 		if len(self.tags) > 0:
 			size_value_size = struct.calcsize(SIZE_SYMBOL)
 			for tag in self.tags:
-				size = struct.unpack(ENDIAN+SIZE_SYMBOL, data[offset:offset + size_value_size])
+				size = struct.unpack(SIZE_SYMBOL, data[offset:offset + size_value_size])[0]
 				offset += size_value_size
-				ret_data[tag.name] = (x.to_value(data[offset:offset + size]))
+				ret_data[tag.name] = (tag.to_value(data[offset:offset + size]))
 				offset += size
 		if len(self.submessages) > 0:
 			# Figure out what type of packet this is.
-			pkt_type = struct.unpack(ENDIAN + TYPE_SYMBOL,
-					data[offset:offset + stuct.calcsize(TYPE_SYMBOL]))
+			pkt_type = struct.unpack(TYPE_SYMBOL,
+					data[offset:offset + struct.calcsize(TYPE_SYMBOL)])[0]
 			offset += struct.calcsize(TYPE_SYMBOL)
-			ret_data[TYPETAG] = pkt_type
-			ret_data[PAYLOAD] = self.submessages[pkt_type].decode(data[offset:], crypto)
+			ret_data[Tags.TYPE] = pkt_type
+			ret_data[Tags.PAYLOAD] = self.submessages[pkt_type].decode(data[offset:], crypto)
+		return ret_data
 
 class CarrierMessage(Message):
 	"""
@@ -69,7 +71,7 @@ class CarrierMessage(Message):
 	"""
 
 	def encode(self, data, crypto):
-		dtype = data[TYPETAG]
+		dtype = data[Tags.TYPE]
 		ret_data = MAGIC_HEADER
 		ret_data += struct.pack(VERSION_SYMBOL, PROTO_VERSION)
 		ret_data += struct.pack(TYPE_SYMBOL, dtype)
@@ -83,24 +85,25 @@ class CarrierMessage(Message):
 			raise ProtocolError("Magic string does not match")
 		offset += len(MAGIC_HEADER)
 		# Check for version number.
-		if struct.unpack(ENDIAN + VERSION_SYMBOL,
-				data[offset:offset + stuct.calcsize(VERSION_SYMBOL])\
-				!= PROTO_VERSION:
+		version = struct.unpack(VERSION_SYMBOL,
+				data[offset:offset + struct.calcsize(VERSION_SYMBOL)])[0]
+		if version != PROTO_VERSION:
+			print(version, PROTO_VERSION)
 			raise ProtocolError("Protocol is from a different version")
 		offset += struct.calcsize(VERSION_SYMBOL)
 		# Figure out what type of packet this is.
-		pkt_type = struct.unpack(ENDIAN + TYPE_SYMBOL,
-				data[offset:offset + stuct.calcsize(TYPE_SYMBOL]))
+		pkt_type = struct.unpack(TYPE_SYMBOL,
+				data[offset:offset + struct.calcsize(TYPE_SYMBOL)])[0]
 		offset += struct.calcsize(TYPE_SYMBOL)
 		# Get data out of it.
 		r_dict = self.submessages[pkt_type].decode(data[offset:], crypto)
-		r_dict[TYPETAG] = pkt_type
+		r_dict[Tags.TYPE] = pkt_type
 		return r_dict
 
 
 class Encrypted(Message):
 	def __init__(self, suite, tags=[], submessages=None):
-		pkt_id_tag = Tag(PKTID, ID_SYMBOL)
+		pkt_id_tag = Tag(Tags.PKTID, ID_SYMBOL)
 		super().__init__([pkt_id_tag] + tags, submessages)
 		self.suite = suite
 
@@ -118,7 +121,7 @@ PROTO = CarrierMessage(
 		# DH select g
 		1 : Message(tags=[Tag('dh_g', 'struct')]),
 		# DH pass mod
-		2 : Message(tags=[Tag('dh_p', 'struct')]),
+		2 : Message(tags=[Tag('dh_B', 'struct')]),
 		# DH encrypted messages.
 		# All encrypted messages have a pkt_id innately.
 		3 : Encrypted('diffie-hellman', submessages={
@@ -133,7 +136,8 @@ PROTO = CarrierMessage(
 			}),
 		4 : Encrypted('aes', submessages={
 			1 : Message()
-			}
+			}),
+		5 : Message(tags=[Tag('int', 'I'), ListTag('strlist', StringTag('names'))])
 		}
 	)
 
