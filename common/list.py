@@ -65,7 +65,10 @@ class List(list):
 			return True
 
 	def select(self, exp):
-		pass
+		"""
+		.. todo:: Implement.
+		"""
+		raise NotImplemented()
 
 
 

@@ -5,10 +5,10 @@ class Hash():
 	Container for a hash.
 	Lots of overloaded operators.
 
-	.. attribute value::
+	.. attribute:: value
+
 		The :class:`bytes` object that is the raw hash.
 	"""
-	value = None	# Bytes object
 
 	def __init__(self, value):
 		self.value = value

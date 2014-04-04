@@ -1,3 +1,6 @@
-K = 20		# Bucketsize
-A = 3		# Parallel calls
-B = 160		# Keysize
+#: Bucket size
+K = 20
+#: Level of paralellism for DHT searches
+A = 3
+#: Keysize
+B = 160

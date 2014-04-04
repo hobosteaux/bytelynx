@@ -9,14 +9,19 @@ TIMEOUTMULT = 3
 class Contact():
 	"""
 	.. attribute:: pings
+
 		List of all pings sent and send time.
 	.. attribute:: address
+
 		Remote :class:`common.Address`.
 	.. attribute:: hash
+
 		Remote :class:`common.Hash`.
 	.. attribute:: last_seen
+
 		Last time a packet was seen from this address.
 	.. attribute:: on_death
+
 		Event thrown when the contact has died.
 	"""
 

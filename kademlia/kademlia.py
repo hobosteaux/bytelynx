@@ -18,12 +18,21 @@ class Kademlia():
 	The main interface to the kademlia DHT.
 	Because the DHT has to stay updated with all the
 	packets transferred, this also must be the hub
-	of all network traffic.	
+	of all network traffic.
+
+	.. attribute:: shortlists
+
+		The kademlia :class:`~kademlia.Shortlists`
+	.. attribute:: buckets
+
+		The kademlia :class:`~kademlia.Buckets`
+	.. attribute:: udp_stack
+
+		Main network stack.
+	.. db_conn
+
+		Database handle :class:`common.dbinterface`
 	"""
-	shortlists = None
-	buckets = None
-	udp_stack = None
-	db_conn = None
 
 	def __init__(self):
 		self.db_conn = dbinterface()
@@ -86,7 +95,7 @@ class Kademlia():
 
 	def send_data(self, contact, data):
 		"""
-		sends data to a remote contact and marks down a ping.
+		Sends data to a remote contact and marks down a ping.
 
 		:param contact: Contact to send data to.
 		:type contact: :class:`~common.Contact`
@@ -101,7 +110,7 @@ class Kademlia():
 
 	def send_ping(self, addr):
 		"""
-		send a raw ping to a contact.
+		Send a raw ping to a contact.
 		Used to alert them to your presence.
 
 		:param addr: Address to send it to.

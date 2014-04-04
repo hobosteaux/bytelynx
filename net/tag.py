@@ -36,6 +36,9 @@ class Tag():
 		self._value = struct.unpack(self.tag_struct, value)[0]
 
 	def to_value(self, encoded):
+		"""
+		Transforms encoded bytes to python objects and returns them.
+		"""
 		self.encoded = encoded
 		return self.value
 

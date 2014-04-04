@@ -10,6 +10,11 @@ class CryptoHandlers():
 		self.symmetric = symmetric
 
 class Message():
+	"""
+	The base message.
+	This is the most generic type that is used for basic protocols.
+	It also defines the interface for encoding and decoding.
+	"""
 
 	def __init__(self, tags=None, submessages=None):
 		"""
@@ -67,7 +72,7 @@ class Message():
 class CarrierMessage(Message):
 	"""
 	This is a special case messsage, as it deals with protocol headers.
-	Everything must be based off of this, as it is the root.
+	Everything must be wrapped in this, as it is the root.
 	"""
 
 	def encode(self, data, crypto):
@@ -102,6 +107,11 @@ class CarrierMessage(Message):
 
 
 class Encrypted(Message):
+	"""
+	Message for and encrypted data.
+	The initializer must get a string for the encryption
+	suite that it uses.
+	"""
 	def __init__(self, suite, tags=[], submessages=None):
 		pkt_id_tag = Tag(Tags.PKTID, ID_SYMBOL)
 		super().__init__([pkt_id_tag] + tags, submessages)
@@ -115,7 +125,7 @@ class Encrypted(Message):
 		payload = crypto[self.suite].decrypt(data)
 		return super().decode(payload, crypto)
 
-
+# start-after
 PROTO = CarrierMessage(
 	submessages={
 		# DH select g

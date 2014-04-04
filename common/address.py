@@ -1,7 +1,11 @@
 class Address():
 	"""
-	.. attribute ip::
-	.. attribute port::
+	.. attribute:: ip
+
+		str. ip address
+	.. attribute:: port
+
+		int. port number
 	"""
 
 	def __init__(self, ip, port):

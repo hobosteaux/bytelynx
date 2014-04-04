@@ -4,9 +4,11 @@ class Ping():
 	"""
 	Simple struct for pings.
 
-	.. attribute pkt_id
+	.. attribute:: pkt_id
+
 		The ushort packet id.
-	.. attribute sent_time
+	.. attribute:: sent_time
+
 		The datetime that it was sent.
 	"""
 

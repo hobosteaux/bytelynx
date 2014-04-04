@@ -11,8 +11,10 @@ class SearchContact():
 	Simple struct for search contacts.
 
 	.. attribute:: contacted
+
 		If a contact has been contacted yet.
 	.. attribute:: contact
+
 		The contact's address.
 	"""
 
@@ -20,6 +22,8 @@ class SearchContact():
 		self.contacted = contacted
 		self.contact = contact
 
+#: A representation of each node that has an
+#: asynchronous operation in progress.
 InProgress = namedtuple('InProgress', 'address time')
 
 class Shortlist():
@@ -27,16 +31,22 @@ class Shortlist():
 	Used when searching for a hash on the DHT.
 
 	.. attribute:: search_space
-		A list of the :class:`kademlia.SearchContact`s.
+
+		A list of the :class:`kademlia.SearchContact`.
 	.. attribute:: closest
+
 		The closest hash found so far.
 	.. attribute:: own_hash
+
 		This node's hash.
 	.. attribute:: target_hash
+
 		The hash that this shortlist is searching for.
 	.. attribute:: in_progress
+
 		List of :attr:`~kademlia.shortlist.InProgress` contacts that the shortlist is awaiting a response from.
 	.. attribute:: on_full_or_found
+
 		Fired when all closer contacts are exausted or the contact is found.
 	"""
 	
@@ -45,7 +55,7 @@ class Shortlist():
 		:param target_hash: The :hash that this shortlist is seaching for.
 		:type target_hash: :class:`common.Hash`
 		:param initialContacts: Contacts to start the shorlist with.
-		:type initialContacts: [:class:``]
+		:type initialContacts: [:class:`common.Contact`]
 		"""
 		self.search_space = list(SearchContact(False, x) for x in initialContacts)
 		self.own_hash = state.SELF.hash_
@@ -86,6 +96,9 @@ class Shortlist():
 	def rm_search(self, addr):
 		"""
 		Filters all searches to remove the one given to it.
+
+		:param addr: The address to remove.
+		:type addr: :class:`common.Address`
 		"""
 		self.in_progress = list(filter(lambda x: x.address != addr, self.in_progress))
 
@@ -134,6 +147,7 @@ class Shortlist():
 	def find_min(self, uncontacted=True):
 		"""
 		Returns the minimum item from the shortlist.
+
 		.. todo:: Clean this up.
 		"""
 		searchLambda = lambda x: not x.contacted
@@ -159,7 +173,10 @@ class Shortlist():
 	def find_max(self, uncontacted=True):
 		"""
 		Returns the maximum item from the shortlist.
-		.. todo:: Clean this up.
+
+		.. todo::
+
+			Clean this up.
 		"""
 		searchLambda = lambda x: not x.contacted
 		# Find first uncontacted contact
@@ -190,12 +207,15 @@ from queue import Queue
 
 class Shortlists():
 	"""
-	Interface class for multiple :class:`~kademlia.Shorlist`s.
+	Interface class for multiple
+	:class:`~kademlia.shortlist.Shortlist`.
 
 	.. attribute:: on_search
+
 		Event for when a search message should be sent.
 		(:class:`~common.Hash`, :class:`~common.Contact`)
 	.. attribute:: on_full_or_found
+
 		Event for when the list is either full or found the contact.
 		Returns either the contact or the closest one found.
 	"""
@@ -230,8 +250,11 @@ class Shortlists():
 		Adds a task to the queue to respond to a search.
 
 		:param hash_: The hash identifier for the target.
-		:type hash_: :class:`common.hash_`
-		:param request_addr: The hash
+		:type hash_: :class:`common.Hash`
+		:param request_addr: The responding address.
+		:type request_addr: :class:`common.Address`
+		:param responses: Contacts received.
+		:type responses: [:class:`common.Contact`]
 		"""
 		self._task_queue.put((self._add_response, (hash_, request_addr, responses)))
 
@@ -244,7 +267,7 @@ class Shortlists():
 		Adds a task to the queue to remove a search for a hash.
 
 		:param hash_: The hash identifier for the target.
-		:type hash_: :class:`common.hash_`
+		:type hash_: :class:`common.Hash`
 		"""
 		self._task_queue.put((self._rm_list,(hash_,)))
 

@@ -7,13 +7,17 @@ import state
 class Bucket:
 	"""
 	.. attribute:: contacts
-		:class:`list` of len :attr:`KademliaConstants.K`
+
+		:class:`list` of len :attr:`kademlia.K`
 	.. attribute:: waitlist
-		:class:`list` of len :attr:`KademliaConstants.K`
+
+		:class:`list` of len :attr:`kademlia.K`
 	.. attribute:: on_added
-		Event(:class:`event.Event`)
+
+		Event(:class:`common.Event`)
 	.. attribute:: on_removed
-		Event(:class:`event.Event`)
+
+		Event(:class:`common.Event`)
 	"""
 
 	def __init__(self):
@@ -27,8 +31,8 @@ class Bucket:
 		Checks if a new contact is more up to date than one in the bucket.
 
 		:param contact: Newly seen contact.
-		:type contact: :class:`contact.Contact`
-		:param report: Pop the :func:`~bucket.Bucket.on_added` event or not.
+		:type contact: :class:`common.Contact`
+		:param report: Pop the :func:`~common.Bucket.on_added` event or not.
 		"""
 		if (contact not in self.contacts):
 			if (len(self.contacts) <= K):
@@ -45,7 +49,7 @@ class Bucket:
 		Event handler for when a contact expires that is in a list.
 
 		:param contact: Dieing contact.
-		:type contact: :class:`contact.Contact`
+		:type contact: :class:`common.Contact`
 		"""
 		if (contact in self.contacts):
 			self.contacts.remove(contact)
@@ -59,6 +63,9 @@ class Bucket:
 			waitlist.on_death -= self.waitlist_death
 
 	def waitlist_death(self, contact):
+		"""
+		Event fired if a contact on the waitlist dies.
+		"""
 		if (contact in self.waitlist):
 			self.waitlist.remove(contact)
 			contact.on_death -= self.waitlist_death
@@ -73,16 +80,21 @@ class Buckets():
 	Primary interface to the list of :class:`kademlia.Bucket`.
 
 	.. attribute:: _buckets
+
 		A list of buckets `~kademlia.K` big.
 	.. attribute:: _conns
+
 		All currently alive seen connections.
-		{:class:`~common.Address` : :class:`~common.Contact}
-	.. attricute:: _last_check
+		{:class:`~common.Address`: :class:`~common.Contact`}
+	.. attribute:: _last_check
+
 		Last time that the _conns we checked for liveliness.
 	.. attribute:: on_added
+
 		Event called when a new contact is added to a bucket.
 		Event(:class:`~common.Client`)
 	.. attribute:: on_removed
+
 		Event called when a contact is removed from bucket.
 		Event(:class:`~common.Client`)
 	"""
@@ -103,7 +115,7 @@ class Buckets():
 		Will not proc the on_added event for the db's sake.
 
 		:param contacts: The contacts to add.
-		:type contacts: [:class:`contact.Contact`]
+		:type contacts: [:class:`common.Contact`]
 		"""
 		for contact in contacts:
 			self.update(contact, False)
@@ -113,8 +125,8 @@ class Buckets():
 		Updates a contact within the correct bucket.
 
 		:param contact: The seen contact.
-		:type contact: :class:`contact.Contact`
-		:param report: Pop the :func:`~bucket.Bucket.on_added` event or not.
+		:type contact: :class:`common.Contact`
+		:param report: Pop the :func:`~common.Bucket.on_added` event or not.
 		"""
 		loc = (contact.hash ^ state.SELF.hash).significant_bit()
 		self._buckets[loc].update(contact, report)
@@ -169,7 +181,7 @@ class Buckets():
 		Translates an address and hash to a client handle.
 
 		:return: A cached client.
-		:rtype: :class:`contact.Contact`
+		:rtype: :class:`common.Contact`
 		"""
 		# We have seen this one before and it has not expired.
 		if (address in self._conns):
@@ -202,7 +214,7 @@ class Buckets():
 		Calls contact.on_death no matter what.
 
 		:param contact: Contact to remove.
-		:type contact: :class:`contact.Contact`
+		:type contact: :class:`common.Contact`
 		"""
 		if (contact.address in self._conns):
 			del(self._conns[contact.address])
