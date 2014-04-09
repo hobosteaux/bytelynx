@@ -3,12 +3,6 @@ from net.common import *
 import net.tagconstants as Tags
 from common.exceptions import *
 
-class CryptoHandlers():
-	def __init__(self, dh, pki, symmetric):
-		self.dh = dh
-		self.pki = pki
-		self.symmetric = symmetric
-
 class Message():
 	"""
 	The base message.
