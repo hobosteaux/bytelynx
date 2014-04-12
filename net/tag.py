@@ -8,6 +8,7 @@ from .common import *
 class Tag():
 	"""
 	Construct to transform a data value to encoded data and back.
+	Stores one packed value of a given type.
 	"""
 
 	def __init__(self, name, tag_struct):
@@ -18,10 +19,6 @@ class Tag():
 
 	@property
 	def encoded(self):
-		"""
-		Primary getter for the struct.
-		Calls self._encoded (overloaded) and cats the len on the front.
-		"""
 		d = self._encoded
 		return struct.pack(SIZE_SYMBOL, len(d)) + d
 
@@ -36,9 +33,6 @@ class Tag():
 		self._value = struct.unpack(self.tag_struct, value)[0]
 
 	def to_value(self, encoded):
-		"""
-		Transforms encoded bytes to python objects and returns them.
-		"""
 		self.encoded = encoded
 		return self.value
 
@@ -55,6 +49,9 @@ class Tag():
 		self._value = value
 
 class HashTag(Tag):
+	"""
+	Tag that encapsulates a :class:`common.Hash` object.
+	"""
 
 	def __init__(self):
 		super().__init__('hash', "%ss" %  (B // 8))
@@ -68,6 +65,10 @@ class HashTag(Tag):
 		self._value = Hash(value)
 
 class AddressTag(Tag):
+	"""
+	Tag that encapsulates a :class:`common.Address` object.
+	Serializes the ip address and the port.
+	"""
 
 	def __init__(self):
 		super().__init__('address', '4BH')
@@ -89,7 +90,8 @@ Node = namedtuple('Node', 'hash address')
 class NodeTag(Tag):
 	"""
 	Represents a Node.
-	Encapsulates an address and a hash.
+	Encapsulates an :class:`common.Address` and a :class:`common.Hash`.
+
 	.. note::
 		This class breaks convention by taking a :class:`common.Contact`
 		object, but returning the Node namedtuple.
@@ -102,10 +104,6 @@ class NodeTag(Tag):
 
 	@Tag.value.setter
 	def value(self, contact):
-		"""
-		:param value: The contact to serialize.
-		:type value: :class:`common.Contact`
-		"""
 		self._value = Node(contact.hash, contact.address)
 
 	@property
@@ -124,7 +122,7 @@ class NodeTag(Tag):
 
 class StringTag(Tag):
 	"""
-	A tag that stands for a variable-length string.
+	Tag that encapsulates a variable-length string.
 	"""
 	
 	def __init__(self, name):
@@ -141,7 +139,7 @@ class StringTag(Tag):
 
 class ListTag(Tag):
 	"""
-	A tag that stands for a list of items.
+	Tag that encapsulates a list of single tag.
 	"""
 
 	def __init__(self, name, inner_tag):
