@@ -4,13 +4,15 @@ To Do List
 Crypto
 ++++++
 
-Implement the DH exchange
+Implement the DH exchange!!!!!
 
 Implement PKI for AES exchange
 
 Kademlia
 ++++++++
 Refresh buckets after an expiration time
+
+Fix bug w/ empty buckets.first()
 
 Networking
 ++++++++++
@@ -36,3 +38,19 @@ Docs
 ++++
 
 Make it easy for new devs to pick up
+
+UI
+++
+
+Start architecting the ui properties & the tcp server to push changes
+
+Blockers
+++++++++
+
+DH - The whole proto NEEDS this in order to test the new net system
+	WORKAROUND: Commit a broken DH that functionally works. How good of an idea this is... yeah... Or implement stubs.
+
+	WORKAROUND COMMENT: Need to figure out how the proto will work... what is the network password, the gen or exponent. How do we generate a 'safe' exponent?
+
+Finding a newblood to read the docs / try using.
+Identify docs weakponts (there are lots of them)
