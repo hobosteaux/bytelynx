@@ -16,6 +16,10 @@ KEY_SIZE = 32
 TAG_SIZE = 16
 
 class AESCrypto(CryptoModule):
+	"""
+	A simple module to provide AES-GCM.
+	Backended by the cryptography library.
+	"""
 
 	def __init__(self, key=None):
 		"""
