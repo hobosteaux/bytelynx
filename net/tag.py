@@ -166,3 +166,20 @@ class ListTag(Tag):
 			a.append(self.inner_tag.to_value(in_bytes[x : x + sz]))
 			x += sz
 
+class VarintTag(Tag):
+	"""
+	Tag that encapsulates a variable-length integer.
+	Used for DH handshakes.
+	"""
+	
+	def __init__(self, name):
+		super().__init__(name, '')
+	
+	@property
+	def _encoded(self):
+		length = round((self._value.bit_length() / 8) + 0.5)
+		return self._value.to_bytes(length, 'big')
+
+	@Tag.encoded.setter
+	def encoded(self, value):
+		self._value = int.from_bytes(value, 'big')

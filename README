@@ -1,6 +1,10 @@
-Some description text. Yay!
+All documentation for this project is done via sphinx.
+One day, I will find a nice place to host it.
+
+Heads up, this is python3!
 
 Required packages:
-	PyOpenSSL (https://launchpad.net/pyopenssl)
+	cryptography
+#	PyOpenSSL (https://launchpad.net/pyopenssl)
 #	RSA (https://pypi.python.org/pypi/rsa)
-	pyDTLS (provided with, upgraded to py3)
+#	pyDTLS (provided with, upgraded to py3)

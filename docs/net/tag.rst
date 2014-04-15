@@ -45,4 +45,4 @@ Current Tags
 ++++++++++++
 
 .. automodule:: net.tag
-	:members: Tag, HashTag, AddressTag, NodeTag, StringTag, ListTag
+	:members: Tag, HashTag, AddressTag, NodeTag, StringTag, ListTag, VarintTag
