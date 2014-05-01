@@ -5,7 +5,7 @@ from .bucket import Buckets
 from .shortlist import Shortlists
 from common import dbinterface, Address, List
 from net import Server
-import net.protocol
+import net.tagconstants as Tags
 
 # Import Constants
 from .constants import K # Bucketsize
@@ -26,9 +26,6 @@ class Kademlia():
 	.. attribute:: buckets
 
 		The kademlia :class:`~kademlia.Buckets`
-	.. attribute:: udp_stack
-
-		Main network stack.
 	.. db_conn
 
 		Database handle :class:`common.dbinterface`
@@ -46,10 +43,26 @@ class Kademlia():
 		self.buckets.on_removed += self.db_conn.rm_contact
 		contacts = self.db_conn.contacts() + [state.SELF]
 		self.buckets.seed(contacts)
+		
+		state.NET.protocol.on_dht += self.dht_handler
 
-		self.udp_stack = Server()
-		self.udp_stack.on_data += self.on_data
+	def dht_handler(self, contact):
+		"""
+		Updates the buckets when a bucket-eligible
+		message is received.
 
+		:param contact: The contact that data was received from
+		:type contact: :class:`~common.Contact`
+		"""
+		self.buckets.update(contact)
+
+	def on_find_node_request(self, data):
+		"""
+		Event handler for when a request for a node arrives.
+		"""
+		contacts = self.buckets.get_closest(data['hash'])
+		retData = {'hash': data['hash'], 'nodes': contacts}
+		self.send_data(contact, retData)
 
 	def on_data(self, data, address):
 		"""

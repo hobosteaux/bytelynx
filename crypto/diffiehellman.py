@@ -1,8 +1,4 @@
 #!/usr/bin/python3
-
-import Crypto.Random.random
-secure_random = Crypto.Random.random.getrandbits
-
 from .cryptobase import CryptoModule
 
 class DHCrypto(CryptoModule):
@@ -25,7 +21,7 @@ class DHCrypto(CryptoModule):
 
 	def __init__(self, p):
 		self.p = p
-		self.private = secure_random(576)
+		self.private = self.random_int(512)
 
 	def _check_g(self, g):
 		"""

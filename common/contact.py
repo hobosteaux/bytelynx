@@ -49,6 +49,15 @@ class Contact():
 	def __repr__(self):
 		return '%s' % (self.address)
 
+	def set_hash(self, hash_):
+		"""
+		Sets the contacts hash.
+		"""
+		if not self.needs_hash:
+			raise ValueError("Hash already set")
+		self.hash = hash_
+		self.needs_hash = False
+
 	def add_ping(self):
 		"""
 		Adds a ping to the list.
@@ -64,16 +73,13 @@ class Contact():
 			self.counter = 0
 		return pkt_id
 
-	def awk_ping(self, pkt_id, hash):
+	def awk_ping(self, pkt_id):
 		"""
 		Awknowledge a previous ping.
 
 		:param pkt_id: The packet to awk.
-		:param hash: Hash of the contact.
-		:type hash: :class:`common.Hash` 
+		:type pkt_id: int.
 		"""
-		if (self.needs_hash):
-			self.hash = hash
 		try:
 			# I would love to use PyLINQ, but we are cleaning any old pings too.
 			oldpings = []

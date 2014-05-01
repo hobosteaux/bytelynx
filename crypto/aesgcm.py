@@ -21,19 +21,23 @@ class AESCrypto(CryptoModule):
 	Backended by the cryptography library.
 	"""
 
-	def __init__(self, key=None):
+	def __init__(self):
+		self.iv = self.random_bytes(IV_SIZE)
+
+	def set_key(self, key=None)
 		"""
+		Sets this instance's secret.
+		If none is provided, one will be generated.
+
 		:param key: A bytes object secret.
 		:type key: bytes
 		"""
 		if key is None:
-			self.key = os.urandom(KEY_SIZE)
+			self.key = self.random_bytes(KEY_SIZE)
 		else:
 			if len(key) != KEY_SIZE:
 				raise exceptions.KeySizeError()
 			self.key = key
-		self.iv = os.urandom(IV_SIZE)
-		
 
 	def encrypt(self, data):
 		"""

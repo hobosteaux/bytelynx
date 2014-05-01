@@ -1,7 +1,6 @@
 import socket
 from threading import Thread
 
-from .protocol import decoder, encoder
 from common import Address, Event
 import state
 
@@ -11,7 +10,7 @@ class Server():
 	Throws the :attr:`~net.Server.on_data` event when a packet is received.
 
 	.. attribute:: on_data:
-		A tuple of ({data}, :class:`net.Address`)
+		A tuple of (:class:`net.Address`, raw_data)
 	"""
 
 	def __init__(self):
@@ -29,27 +28,24 @@ class Server():
 		"""
 		#print("Waiting for message")
 		while (True):
-			data, address = self._sock.recvfrom(65536)
+			raw_data, address = self._sock.recvfrom(65536)
     			
 			#print('received '+ str(len(data)) +' bytes from '+ str(address))
 
-			#try:
-			address = Address(address[0], address[1])
-			data = decoder(data)
-			self.on_data(data, address)
+			try:
+				address = Address(address[0], address[1])
+				self.on_data(address, raw_data)
 
-			#except:
-			#	print("ERROR:", address, data)
+			except:
+				print("ERROR:", address, data)
 
-	def send(self, address, tags):
+	def send(self, address, raw_data):
 		"""
-		Sends a dictionary of tags to an address.
+		Sends a encoded data to an address.
 
 		:param address: The destination address.
 		:type address:`~net.Address`
-		:param tags: Tags to encode.
-		:type tags: {}
+		:param data: Raw data.
+		:type tags: bytes
 		"""
-		print(tags['type'], '->', address)
-		data = encoder(tags)
-		self._sock.sendto(data, address.AsTuple())
+		self._sock.sendto(raw_data, address.AsTuple())

@@ -3,20 +3,24 @@ import struct
 
 from common import Contact, Address, Hash
 import net.ipfinder
+from net import Stack
 
 # Global state variables
+#: This instance's :class:`~common.Contact`
 SELF = None
+#: This instance's :class:`~net.Stack`
+NET = None
 
+#: Default hash for testing
 DEFHASH = hash(b'12345678901234567890')
-"""Default hash for testing."""
+#: Default port
 DEFPORT = 8906
-"""Default port."""
+#: Random hash, also for testing
 RANDHASH = Hash(os.urandom(20))
-"""Random hash, also for testing."""
+#: Placeholder for arandom port
 RANDPORT = 0
-"""Placeholder for arandom port."""
+#: Virtual root dir for the instance
 DIR = 'tmp/' + RANDHASH.base64[:10] + '/'
-"""Virtual root dir for the instance."""
 
 os.makedirs(DIR)
 
@@ -45,6 +49,7 @@ def __init__():
 	.. todo:: Init own hash.
 	"""
 	global SELF
+	global NET
 
 	if SELF == None:
 		print("Initing globals")
@@ -52,5 +57,6 @@ def __init__():
 
 		addr = Address(net.ipfinder.check_in(), RANDPORT)
 		SELF = Contact(addr, RANDHASH)
+		NET = Stack()
 
 __init__()

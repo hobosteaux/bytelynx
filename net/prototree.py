@@ -2,23 +2,64 @@ from net.tag import *
 from net.common import *
 import net.tagconstants as Tags
 from common.exceptions import *
+from common import Event
 
 class Message():
 	"""
 	The base message.
 	This is the most generic type that is used for basic protocols.
 	It also defines the interface for encoding and decoding.
+
+	.. note::
+
+		ALL leaf messages must be made out of this.
+
+	.. attribute:: msg_name
+
+		The msg_name for this message.
+	.. attribute:: tags
+
+		The tags that this is comprised of.
+	.. attribute:: submessages
+
+		Any submessages that are encapsulated.
+	.. attribute:: on_dht
+
+		The event to fire if a dht message is received.
+		This will always be fired, but not always be subscribed to.
+		(contact)
+	.. attribute:: on_ping
+
+		The event to fire if a pingable message is received.
+		This will always be fired, but not always be subscribed to.
+		(contact, int pkt_id)
+	.. attribute:: on_data
+
+		The event to fire when data has come in.
+		Only applies to this message.
+		(contact, dict data)
 	"""
 
-	def __init__(self, tags=None, submessages=None):
+	def __init__(self, msg_name, tags=None, submessages=None
+				dht_func=None, ping_func=None):
 		"""
+		:param msg_name: The name for this message.
+		:type msg_name: str.
 		:param tags: Tags to use to translate.
 		:type tags: [:class:`net.tag.Tag`]
 		:param submessages: Messages to fill the remaining data space.
 		:type submessages: {int : :class:`~net.message.Message`}
 		"""
+		self.msg_name = msg_name
 		self.tags = [] if tags is None else tags
 		self.submessages = {} if submessages is None else submessages
+		self.on_dht = Event()
+		if dht_func is not None:
+			self.on_dht += dht_func
+		self.on_ping = Event()
+		if ping_func is not None:
+			self.on_ping += ping_func
+		self.on_data = Event()
 
 	def encode(self, data, crypto):
 		"""
@@ -44,7 +85,9 @@ class Message():
 		:type data: bytes
 		:param crypto: Crypto handlers for this contact.
 		:type crypto: :class:`crypto.CryptoHandlers`
+		:returns: msg_name, data
 		"""
+		msg_name = self.msg_name
 		ret_data = {}
 		offset = 0
 		if len(self.tags) > 0:
@@ -60,8 +103,8 @@ class Message():
 					data[offset:offset + struct.calcsize(TYPE_SYMBOL)])[0]
 			offset += struct.calcsize(TYPE_SYMBOL)
 			ret_data[Tags.TYPE] = pkt_type
-			ret_data[Tags.PAYLOAD] = self.submessages[pkt_type].decode(data[offset:], crypto)
-		return ret_data
+			msg_name, ret_data[Tags.PAYLOAD] = self.submessages[pkt_type].decode(data[offset:], crypto)
+		return msg_name, ret_data
 
 class CarrierMessage(Message):
 	"""
@@ -95,9 +138,10 @@ class CarrierMessage(Message):
 				data[offset:offset + struct.calcsize(TYPE_SYMBOL)])[0]
 		offset += struct.calcsize(TYPE_SYMBOL)
 		# Get data out of it.
-		r_dict = self.submessages[pkt_type].decode(data[offset:], crypto)
+		msg_name, r_dict = self.submessages[pkt_type]\
+							.decode(data[offset:], crypto)
 		r_dict[Tags.TYPE] = pkt_type
-		return r_dict
+		return msg_name, r_dict
 
 
 class Encrypted(Message):
@@ -119,30 +163,108 @@ class Encrypted(Message):
 		payload = crypto[self.suite].decrypt(data)
 		return super().decode(payload, crypto)
 
-# start-after
-PROTO = CarrierMessage(
-	submessages={
-		# DH select g
-		1 : Message(tags=[Tag('dh_g', 'struct')]),
-		# DH pass mod
-		2 : Message(tags=[Tag('dh_B', 'struct')]),
-		# DH encrypted messages.
-		# All encrypted messages have a pkt_id innately.
-		3 : Encrypted('diffie-hellman', submessages={
-			# Ping
-			1 : Message(),
-			# Pong
-			2 : Message(tags=[Tag('pong_id', ID_SYMBOL)]),
-			# DHT Search
-			3 : Message(tags=[HashTag()]),
-			# DHT Response
-			4 : Message(tags=[HashTag(), ListTag('nodes', NodeTag())])
-			}),
-		4 : Encrypted('aes', submessages={
-			1 : Message()
-			}),
-		5 : Message(tags=[Tag('int', 'I'), ListTag('strlist', StringTag('names'))])
-		}
-	)
+class Protocol():
+	"""
+	Container for the ByteLynx protocol.
+	"""
 
+	def __init__(self):
+		self.on_dht = Event()
+		self.on_dht_ping = Event()
+		self.on_net_ping = Event()
 
+		self.proto = None
+		self.set_proto()
+		self.decoders = self.get_decoders(self.proto)
+
+	def decode(self, data, crypto):
+		"""
+		Shortcut to decode using the local protocol.
+
+		:param data: Raw data to decode.
+		:type data: bytes
+		:param crypto: The crypto hander to use.
+		:type crypto: :class:`~crypto.CryptoHandlers`
+		"""
+		return self.proto.decode(data, crypto)
+
+	def encode(self, data, crypto):
+		"""
+		Shortcut to encode using the local protocol.
+
+		:param data: Data to encode.
+		:type data: dict
+		:param crypto: The crypto hander to use.
+		:type crypto: :class:`~crypto.CryptoHandlers`
+		"""
+		return self.proto.encode(data, crypto)
+
+	def get_decoders(self, proto=None):
+		"""
+		Transforms the protocol into a flat dict of the leaves.
+		This allows events to be hooked into the decoding of data.
+		This method is recursive across another object.
+		"""
+		r_dict = {}
+		if proto is None:
+			proto = self.proto
+		if len(proto.submessages} > 0:
+			for item in proto.submessages.items:
+				r_dict.update(self.get_decoders(item))
+		else:
+			r_dict[proto.msg_name] = proto
+		return r_dict
+
+	def set_proto(self):
+		"""
+		Gets an instance of the protocol.
+		Not a global so that events can be hooked up to it.
+		"""
+
+		# Since the proto is held onto by events,
+		# declaring a new instance would result in a leak.
+		# It would also result in all messages being parsed 2 times.
+		if self.proto is not None:
+			return
+
+		# start-after
+		self.proto = CarrierMessage('bytelynx'
+			submessages={
+				0 : Message('hello', tags=[HashTag()])
+				1 : Message('dh.g', tags=[VarintTag('dh_g')]),
+				2 : Message('dh.mix', tags=[VarintTag('dh_B')]),
+				# DHT AES-encrypted messages.
+				# Key comes from DH handshake.
+				# All encrypted messages have a pkt_id innately.
+				3 : Encrypted('aes-dht', submessages={
+					1 : Message('dht.ping',
+								dht_func=self.on_dht,
+								ping_func=self.on_dht_ping),
+					2 : Message('dht.pong',
+								tags=[Tag('pong_id', ID_SYMBOL)],
+								dht_func=self.on_dht),
+					# DHT Search
+					3 : Message('dht.search',
+								tags=[HashTag()],
+								dht_func=self.on_dht,
+								ping_func=self.on_dht_ping),
+					# DHT Response
+					4 : Message('dht.response'
+								tags=[HashTag(),
+								ListTag('nodes', NodeTag())])
+								dht_func=self.on_dht,
+								ping_func=self.on_dht_ping),
+					}),
+				# Net AES-encrypted messages.
+				# Key comes from PKI in AES-DHT layer.
+				4 : Encrypted('aes-net', submessages={
+					1 : Message('net.pong'
+								dht_func=self.on_dht,
+								ping_func=self.on_net_ping)
+					}),
+				5 : Message('testing',
+							tags=[Tag('int', 'I'),
+							ListTag('strlist', StringTag('names'))])
+				}
+			)
+		# end-before
