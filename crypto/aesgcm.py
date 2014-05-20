@@ -22,7 +22,7 @@ class AESCrypto(CryptoModule):
 	"""
 
 	def __init__(self):
-		self.iv = self.random_bytes(IV_SIZE)
+		self.state = 'uninitialized'
 
 	def set_key(self, key=None)
 		"""
@@ -32,12 +32,14 @@ class AESCrypto(CryptoModule):
 		:param key: A bytes object secret.
 		:type key: bytes
 		"""
+		self.iv = self.random_bytes(IV_SIZE)
 		if key is None:
 			self.key = self.random_bytes(KEY_SIZE)
 		else:
 			if len(key) != KEY_SIZE:
 				raise exceptions.KeySizeError()
 			self.key = key
+		self.state = 'initialized'
 
 	def encrypt(self, data):
 		"""

@@ -168,13 +168,13 @@ class Protocol():
 	Container for the ByteLynx protocol.
 	"""
 
-	def __init__(self):
+	def __init__(self, translator):
 		self.on_dht = Event()
 		self.on_dht_ping = Event()
 		self.on_net_ping = Event()
 
 		self.proto = None
-		self.set_proto()
+		self.set_proto(translator)
 		self.decoders = self.get_decoders(self.proto)
 
 	def decode(self, data, crypto):
@@ -215,10 +215,13 @@ class Protocol():
 			r_dict[proto.msg_name] = proto
 		return r_dict
 
-	def set_proto(self):
+	def set_proto(self, translator):
 		"""
 		Gets an instance of the protocol.
 		Not a global so that events can be hooked up to it.
+
+		:param translator: The method to translate contacts.
+		:type translator: :attr:`~net.contacttable.translate`
 		"""
 
 		# Since the proto is held onto by events,
@@ -251,7 +254,7 @@ class Protocol():
 					# DHT Response
 					4 : Message('dht.response'
 								tags=[HashTag(),
-								ListTag('nodes', NodeTag())])
+								ListTag('nodes', NodeTag(translator))])
 								dht_func=self.on_dht,
 								ping_func=self.on_dht_ping),
 					}),

@@ -14,7 +14,7 @@ class Stack():
 	def __init__(self):
 		self._server = Server()
 		self._contacts = ContactTable()
-		self.protocol = Protocol()
+		self.protocol = Protocol(self._contacts.translate)
 		self.decoders = self.protocol.get_decoders()
 
 		self._server.on_data += self.on_data
@@ -48,7 +48,7 @@ class Stack():
 			pass
 
 		# Proc the correct on_data event
-		decoder.on_data(contact, data)
+		decoder.on_data(contact, contact, data)
 
 	def send_data(self, contact, data):
 		# Encode the data
@@ -56,3 +56,5 @@ class Stack():
 		# Get pkt_it
 
 		# Encryption?
+
+

@@ -84,27 +84,16 @@ class AddressTag(Tag):
 		raw = struct.unpack(self.tag_struct, value)
 		self._value = Address('.'.join(str(x) for x in raw[:4]), raw[4])
 
-Node = namedtuple('Node', 'hash address')
-"""Quick struct for the output of :class:`~net.tag.NodeTag`"""
 
 class NodeTag(Tag):
 	"""
 	Represents a Node.
 	Encapsulates an :class:`common.Address` and a :class:`common.Hash`.
-
-	.. note::
-		This class breaks convention by taking a :class:`common.Contact`
-		object, but returning the Node namedtuple.
-		This is because the translation to a Contact object must be
-		done by the kademlia contacts table.
 	"""
 
-	def __init__(self):
+	def __init__(self, translator):
 		super().__init__('contact', '%ss4BH' % (B // 8))
-
-	@Tag.value.setter
-	def value(self, contact):
-		self._value = Node(contact.hash, contact.address)
+		self.translator = translator
 
 	@property
 	def _encoded(self):
@@ -116,8 +105,14 @@ class NodeTag(Tag):
 	@Tag.encoded.setter
 	def encoded(self, value):
 		raw = struct.unpack(self.tag_struct, value)
-		self._value = Node(Hash(raw[0]),
+		contact = self.translator(
 			Address('.'.join(str(x) for x in raw[1:5]), raw[5]))
+		try:
+			contact.set_hash(Hash(raw[0]))
+		# Happens if the hash has already been set.
+		except ValueError:
+			pass
+		self._value = contact
 
 
 class StringTag(Tag):

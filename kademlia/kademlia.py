@@ -7,11 +7,6 @@ from common import dbinterface, Address, List
 from net import Server
 import net.tagconstants as Tags
 
-# Import Constants
-from .constants import K # Bucketsize
-from .constants import B # Keysize
-from .constants import A # Paralellism
-
 
 class Kademlia():
 	"""
@@ -56,13 +51,19 @@ class Kademlia():
 		"""
 		self.buckets.update(contact)
 
-	def on_find_node_request(self, data):
+	def on_find_node_request(self, contact, data):
 		"""
 		Event handler for when a request for a node arrives.
 		"""
 		contacts = self.buckets.get_closest(data['hash'])
 		retData = {'hash': data['hash'], 'nodes': contacts}
 		self.send_data(contact, retData)
+
+	def on_find_node_response(self, contact, data):
+		contacts = data['nodes']
+		self.shortlists.add_response(data['hash'],
+					contact.address, contacts)
+		
 
 	def on_data(self, data, address):
 		"""
