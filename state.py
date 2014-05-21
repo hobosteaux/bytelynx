@@ -24,39 +24,41 @@ DIR = 'tmp/' + RANDHASH.base64[:10] + '/'
 
 os.makedirs(DIR)
 
-def new_port():
-	"""
-	Gets a random free port > 10000.
 
-	.. todo::
-		Check if the port is free.
-		And if it is < 65000.
-	"""
-	global RANDPORT
-	RANDPORT = struct.unpack('H',os.urandom(2))[0]
-	while (RANDPORT < 10000):
-		RANDPORT = struct.unpack('H',os.urandom(2))[0]
+def new_port():
+    """
+    Gets a random free port > 10000.
+
+    .. todo::
+        Check if the port is free.
+        And if it is < 65000.
+    """
+    global RANDPORT
+    RANDPORT = struct.unpack('H', os.urandom(2))[0]
+    while (RANDPORT < 10000):
+        RANDPORT = struct.unpack('H', os.urandom(2))[0]
+
 
 def __init__():
-	"""
-	Sets up the global variables including:
-	::
-		Port
-		Hash
-		Own address
-		Own Contact
+    """
+    Sets up the global variables including:
+    ::
+        Port
+        Hash
+        Own address
+        Own Contact
 
-	.. todo:: Init own hash.
-	"""
-	global SELF
-	global NET
+    .. todo:: Init own hash.
+    """
+    global SELF
+    global NET
 
-	if SELF == None:
-		print("Initing globals")
-		new_port()
+    if SELF is None:
+        print("Initing globals")
+        new_port()
 
-		addr = Address(net.ipfinder.check_in(), RANDPORT)
-		SELF = Contact(addr, RANDHASH)
-		NET = Stack()
+        addr = Address(net.ipfinder.check_in(), RANDPORT)
+        SELF = Contact(addr, RANDHASH)
+        NET = Stack()
 
 __init__()
