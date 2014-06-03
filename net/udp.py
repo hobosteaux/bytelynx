@@ -49,4 +49,4 @@ class Server():
         :param data: Raw data.
         :type tags: bytes
         """
-        self._sock.sendto(raw_data, address.AsTuple())
+        self._sock.sendto(raw_data, address.tuple)

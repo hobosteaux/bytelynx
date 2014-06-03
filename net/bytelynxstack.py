@@ -15,7 +15,6 @@ class Stack():
         self._server = Server()
         self._contacts = ContactTable()
         self.protocol = Protocol(self._contacts.translate)
-        self.decoders = self.protocol.get_decoders()
 
         self._server.on_data += self.on_data
 
@@ -37,21 +36,33 @@ class Stack():
         # Decode the packet
         msg_name, data = self.protocol.decode(raw_data, contact.crypto)
 
-        decoder = self.decoders[msg_name]
+        msg = self.protocol.messages[msg_name]
         # Do message housekeeping
-        decoder.on_dht(contact)
-        try:
-            decoder.on_ping(contact, data[Tags.pkt_id])
-        # Happens if this packet does not have an ID
-        except KeyError:
-            pass
+        msg.on_dht(contact)
+        if msg.is_pongable:
+            # TODO: awks - this call goes nowhere
+            contact.awk(data[Tags.pkt_id], msg.mode)
 
         # Proc the correct on_data event
-        decoder.on_data(contact, contact, data)
+        msg.on_data(contact, data)
 
-    def send_data(self, contact, data):
-        # Encode the data
-        pass
-        # Get pkt_it
+    def send_data(self, contact, msg_name, data):
+        """
+        Sends packet to a given contact.
 
-        # Encryption?
+        :param contact: The contact to send data to.
+        :type contact: :class:`~common.contact`
+        :param msg_name: The unique name of the message.
+        :type msg_name: str.
+        :param data: The data to send.
+        :type data: dict.
+        """
+        msg = self.protocol.messages[msg_name]
+        # Encode data
+        data = msg.encode(contact.crypto, data)
+
+        # Send data to a contact
+        self._server.send(contact.address, data)
+
+        # TODO ping assurance? Reliablility?
+        

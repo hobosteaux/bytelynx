@@ -29,16 +29,23 @@ class Message():
     .. attribute:: submessages
 
         Any submessages that are encapsulated.
+    .. attribute:: mode
+
+        The parent link type of this message.
+    .. attribute:: parent
+
+        The encapsulating parent for this message.
+    .. attribute:: is_pongable
+
+        Determines whether to send a pong out when a message
+        of this type is received. Also enables using this
+        message type for calculating ping and enables
+        reliable transport (resends).
     .. attribute:: on_dht
 
         The event to fire if a dht message is received.
         This will always be fired, but not always be subscribed to.
         (contact)
-    .. attribute:: on_ping
-
-        The event to fire if a pingable message is received.
-        This will always be fired, but not always be subscribed to.
-        (contact, int pkt_id)
     .. attribute:: on_data
 
         The event to fire when data has come in.
@@ -46,45 +53,94 @@ class Message():
         (contact, dict data)
     """
 
-    def __init__(self, msg_name, tags=None, submessages=None,
-                 dht_func=None, ping_func=None):
+    def __init__(self, *, msg_name='', mode='',
+                 is_pongable=False, tags=None,
+                 submessages=None, dht_func=None):
         """
         :param msg_name: The name for this message.
         :type msg_name: str.
+        :param mode: The protobol mode for children of this message.
+        :type mode: str.
+        :param is_pongable: If this message is is_pongable.
+        :type is_pongable: bool.
         :param tags: Tags to use to translate.
         :type tags: [:class:`net.tag.Tag`]
         :param submessages: Messages to fill the remaining data space.
         :type submessages: {int : :class:`~net.message.Message`}
         """
-        self.msg_name = msg_name
+        # msg_name mode
+        #   T       T   Fail - bad
+        #   T       F   use msg name
+        #   F       T   used mode name
+        #   F       F   Fail - bad
+        if (len(msg_name + mode) > 0) and\
+                (len(msg_name == 0) or len(mode) == 0):
+            self.msg_name = msg_name + mode
+        else:
+            raise ValueError("A msg_name or mode must be provided")
+        self.is_pongable = is_pongable
         self.tags = [] if tags is None else tags
         self.submessages = {} if submessages is None else submessages
+        # Init params for submessages
+        self.set_child_attrs(mode)
+        # Set all events
         self.on_dht = Event()
         if dht_func is not None:
             self.on_dht += dht_func
-        self.on_ping = Event()
-        if ping_func is not None:
-            self.on_ping += ping_func
         self.on_data = Event()
 
-    def encode(self, data, crypto):
+    def set_mode(self, mode):
         """
-        :param data: Data to encode.
-        :type data: []
+        Sets the protocol mode for a message and all children.
+        Stops at a child if it has a different defined mode
+        Example modes: 'aes-dht', 'aes-net'
+
+        :param mode: Mode to set
+        :type mode: str.
+        """
+        if self.mode is '':
+            self.mode = mode
+            for message in self.submessages.values():
+                message.set_mode(mode)
+
+    def set_child_attrs(self, mode, index=-1, parent=None):
+        """
+        Sets the parent so that protocols can backtrack up.
+        This is needed for encoding messages.
+
+        :param parent: The parent message for this submessage.
+        :type parent: :class:`~net.prototree.Message` or None
+        """
+        # Check if the attr 'mode' exists
+        # If not, set it.
+        try:
+            self.__getattribute__('mode')
+        except AttributeError:
+            self.mode = mode
+        self.parent = parent
+        self.index = index
+        # Set children
+        for idx, message in self.submessages.items():
+            message.set_child_attrs(mode, idx, self)
+
+    def encode(self, crypto, dict_data, bytes_data=b''):
+        """
         :param crypto: Crypto handlers for this contact.
         :type crypto: :class:`crypto.CryptoHandlers`
+        :param dict_data: Data to encode.
+        :type dict_data: {}
+        :param bytes_data: Raw encoded data so far.
+        :type bytes_data: bytes
         """
-        ret_data = b''
+        # Encode the msg type
+        # self.index should never == -1 (default)
+        # UNLESS this is the top level proto wrapper
+        data = struct.pack(TYPE_SYMBOL, self.index)
+        # Encode all tags for this level
         if len(self.tags) > 0:
             for tag in self.tags:
-                ret_data += tag.to_encoded(data[tag.name])
-        if len(self.submessages) > 0:
-            # Encode the msg type.
-            mtype = data[Tags.TYPE]
-            ret_data += struct.pack(TYPE_SYMBOL, mtype)
-            ret_data += self.submessages[mtype].encode(data[Tags.PAYLOAD],
-                                                       crypto)
-        return ret_data
+                data += tag.to_encoded(data[tag.name])
+        return self.parent.encode(crypto, dict_data, data + bytes_data)
 
     def decode(self, data, crypto):
         """
@@ -124,13 +180,18 @@ class CarrierMessage(Message):
     Everything must be wrapped in this, as it is the root.
     """
 
-    def encode(self, data, crypto):
-        dtype = data[Tags.TYPE]
-        ret_data = MAGIC_HEADER
-        ret_data += struct.pack(VERSION_SYMBOL, PROTO_VERSION)
-        ret_data += struct.pack(TYPE_SYMBOL, dtype)
-        ret_data += self.submessages[dtype].encode(data, crypto)
-        return ret_data
+    def encode(self, crypto, dict_data, bytes_data):
+        """
+        :param crypto: Crypto handlers for this contact.
+        :type crypto: :class:`crypto.CryptoHandlers`
+        :param dict_data: Data to encode.
+        :type dict_data: {}
+        :param bytes_data: Raw encoded data so far.
+        :type bytes_data: bytes
+        """
+        header = (MAGIC_HEADER +
+                  struct.pack(VERSION_SYMBOL, PROTO_VERSION))
+        return header + bytes_data
 
     def decode(self, data, crypto):
         offset = 0
@@ -169,9 +230,10 @@ class Encrypted(Message):
         super().__init__([pkt_id_tag] + tags, submessages)
         self.suite = suite
 
-    def encode(self, data, crypto):
-        payload = super().encode(data)
-        return crypto[self.suite].encrypt(payload)
+    def encode(self, crypto, dict_data, bytes_data):
+        data = struct.pack(TYPE_SYMBOL, self.index)
+        data += crypto[self.suite].encrypt(bytes_data)
+        return self.parent.encode(crypto, dict_data, data)
 
     def decode(self, data, crypto):
         payload = crypto[self.suite].decrypt(data)
@@ -190,7 +252,7 @@ class Protocol():
 
         self.proto = None
         self.set_proto(translator)
-        self.decoders = self.get_decoders(self.proto)
+        self.messages = self.get_messages(self.proto)
 
     def decode(self, data, crypto):
         """
@@ -214,10 +276,10 @@ class Protocol():
         """
         return self.proto.encode(data, crypto)
 
-    def get_decoders(self, proto=None):
+    def get_messages(self, proto=None):
         """
         Transforms the protocol into a flat dict of the leaves.
-        This allows events to be hooked into the decoding of data.
+        This allows events to be hooked into the encoding of data.
         This method is recursive across another object.
         """
         r_dict = {}
@@ -247,7 +309,7 @@ class Protocol():
 
         # start-after
         self.proto = CarrierMessage(
-            'bytelynx',
+            mode='bytelynx',
             submessages={
                 0: Message('hello', tags=[HashTag()]),
                 1: Message('dh.g', tags=[VarintTag('dh_g')]),
@@ -255,35 +317,33 @@ class Protocol():
                 # DHT AES-encrypted messages.
                 # Key comes from DH handshake.
                 # All encrypted messages have a pkt_id innately.
-                3: Encrypted('aes-dht', submessages={
-                    1: Message('dht.ping',
-                               dht_func=self.on_dht,
-                               ping_func=self.on_dht_ping),
+                3: Encrypted(mode='aes-dht', submessages={
+                    1: Message('dht.ping', is_pongable=True,
+                               dht_func=self.on_dht),
                     2: Message('dht.pong',
                                tags=[Tag('pong_id', ID_SYMBOL)],
                                dht_func=self.on_dht),
                     # DHT Search
-                    3: Message('dht.search',
+                    3: Message('dht.search', is_pongable=True,
                                tags=[HashTag()],
-                               dht_func=self.on_dht,
-                               ping_func=self.on_dht_ping),
+                               dht_func=self.on_dht),
                     # DHT Response
-                    4: Message('dht.response',
+                    4: Message('dht.response', is_pongable=True,
                                tags=[HashTag(),
-                                     ListTag('nodes', NodeTag(translator))],
-                               dht_func=self.on_dht,
-                               ping_func=self.on_dht_ping),
+                                     ListTag('nodes',
+                                             NodeTag(translator))],
+                               dht_func=self.on_dht),
                     }),
                 # Net AES-encrypted messages.
                 # Key comes from PKI in AES-DHT layer.
                 4: Encrypted('aes-net', submessages={
-                    1: Message('net.pong',
-                               dht_func=self.on_dht,
-                               ping_func=self.on_net_ping)
+                    1: Message('net.pong', is_pongable=True,
+                               dht_func=self.on_dht)
                     }),
                 5: Message('testing',
                            tags=[Tag('int', 'I'),
-                                 ListTag('strlist', StringTag('names'))])
+                                 ListTag('strlist',
+                                         StringTag('names'))])
                 }
             )
         # end-before

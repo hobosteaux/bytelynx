@@ -3,7 +3,7 @@
 import state
 from .bucket import Buckets
 from .shortlist import Shortlists
-from common import dbinterface, Address
+from common import dbinterface
 # import net.tagconstants as Tags
 
 
@@ -56,6 +56,7 @@ class Kademlia():
         """
         contacts = self.buckets.get_closest(data['hash'])
         retData = {'hash': data['hash'], 'nodes': contacts}
+        # TODO: Remove self.send_data
         self.send_data(contact, retData)
 
     def on_find_node_response(self, contact, data):
@@ -73,38 +74,27 @@ class Kademlia():
         :param data: Dictionary of the attributes and values.
         :type data: {}
         """
+        # TODO: make this go bye bye
         # update pings.
         data[protocol.PKTIDTAG] = contact.add_ping()
         data[protocol.HASHTAG] = state.SELF.Hash
-        #print('sending ', data, 'to', contact)
+        # print('sending ', data, 'to', contact)
         self.udp_stack.send(contact.address, data)
 
     def send_ping(self, addr):
         """
-        Send a raw ping to a contact.
+        Send a dht ping to a contact.
         Used to alert them to your presence.
 
         :param addr: Address to send it to.
         :type addr: :class:`~common.Address`
         """
-        pingData = { protocol.TYPETAG : protocol.PINGMSG,\
-            protocol.PKTIDTAG : 0,\
-            protocol.HASHTAG : state.SELF.Hash }
-        self.udp_stack.send(addr, pingData)
-
-    def send_pong(self, contact, pkt_id):
-        """
-        A pong for the pings.
-
-        :param contact: The contact to send the pong to.
-        :type contact: :class:`~common.Contact`
-        :param pkt_id: What packet to pong.
-        :type pkt_id: int.
-        """
-        data = { protocol.TYPETAG : protocol.PONGMSG,\
-            protocol.PKTIDTAG : pkt_id,\
-            protocol.HASHTAG : state.SELF.Hash }
-        self.udp_stack.send(contact.Address, data)
+        # TODO: This.
+        pass
+        # pingData = { protocol.TYPETAG : protocol.PINGMSG,\
+        #    protocol.PKTIDTAG : 0,\
+        #    protocol.HASHTAG : state.SELF.Hash }
+        # self.udp_stack.send(addr, pingData)
 
     def init_search(self, hash_):
         """
@@ -118,7 +108,6 @@ class Kademlia():
         # Init the search.
         self.shortlists.start(hash_, contacts)
 
-    # sends out a packet to a single ip.
     def send_search(self, hash_, contact):
         """
         Sends a find node message out to a contact.
@@ -128,8 +117,9 @@ class Kademlia():
         :param contact: The contact to send the request to.
         :type contact: :class:`~common.Contact`
         """
-        data = {protocol.TYPETAG : protocol.FINDNODEMSG,
-                protocol.TARGETHASHTAG : hash_}
+        data = {protocol.TYPETAG: protocol.FINDNODEMSG,
+                protocol.TARGETHASHTAG: hash_}
+        # TODO: Remove this call
         self.send_data(contact, data)
 
     def end_search(self, hash_, contact):
