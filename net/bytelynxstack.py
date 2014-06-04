@@ -65,4 +65,3 @@ class Stack():
         self._server.send(contact.address, data)
 
         # TODO ping assurance? Reliablility?
-        

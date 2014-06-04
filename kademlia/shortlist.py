@@ -25,7 +25,7 @@ class SearchContact():
 
 #: A representation of each node that has an
 #: asynchronous operation in progress.
-InProgress = namedtuple('InProgress', 'address time')
+InProgress = namedtuple('InProgress', ['address', 'time'])
 
 
 class Shortlist():

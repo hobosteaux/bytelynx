@@ -56,8 +56,7 @@ class Kademlia():
         """
         contacts = self.buckets.get_closest(data['hash'])
         retData = {'hash': data['hash'], 'nodes': contacts}
-        # TODO: Remove self.send_data
-        self.send_data(contact, retData)
+        state.NET.send_data(contact, 'dht.response', retData)
 
     def on_find_node_response(self, contact, data):
         contacts = data['nodes']
@@ -65,36 +64,15 @@ class Kademlia():
                                      contact.address,
                                      contacts)
 
-    def send_data(self, contact, data):
-        """
-        Sends data to a remote contact and marks down a ping.
-
-        :param contact: Contact to send data to.
-        :type contact: :class:`~common.Contact`
-        :param data: Dictionary of the attributes and values.
-        :type data: {}
-        """
-        # TODO: make this go bye bye
-        # update pings.
-        data[protocol.PKTIDTAG] = contact.add_ping()
-        data[protocol.HASHTAG] = state.SELF.Hash
-        # print('sending ', data, 'to', contact)
-        self.udp_stack.send(contact.address, data)
-
-    def send_ping(self, addr):
+    def send_ping(self, contact):
         """
         Send a dht ping to a contact.
         Used to alert them to your presence.
 
         :param addr: Address to send it to.
-        :type addr: :class:`~common.Address`
+        :type addr: :class:`~common.Contact`
         """
-        # TODO: This.
-        pass
-        # pingData = { protocol.TYPETAG : protocol.PINGMSG,\
-        #    protocol.PKTIDTAG : 0,\
-        #    protocol.HASHTAG : state.SELF.Hash }
-        # self.udp_stack.send(addr, pingData)
+        state.NET.send_data(contact, 'dht.ping', {})
 
     def init_search(self, hash_):
         """
@@ -117,10 +95,8 @@ class Kademlia():
         :param contact: The contact to send the request to.
         :type contact: :class:`~common.Contact`
         """
-        data = {protocol.TYPETAG: protocol.FINDNODEMSG,
-                protocol.TARGETHASHTAG: hash_}
-        # TODO: Remove this call
-        self.send_data(contact, data)
+        data = {'hash': hash_}
+        state.NET.send_data(contact, 'dht.search', data)
 
     def end_search(self, hash_, contact):
         """
