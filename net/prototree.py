@@ -230,14 +230,16 @@ class Encrypted(Message):
         super().__init__([pkt_id_tag] + tags, submessages)
         self.suite = suite
 
-    def encode(self, crypto, dict_data, bytes_data):
+    def encode(self, contact, dict_data, bytes_data):
         data = struct.pack(TYPE_SYMBOL, self.index)
-        data += crypto[self.suite].encrypt(bytes_data)
-        return self.parent.encode(crypto, dict_data, data)
 
-    def decode(self, data, crypto):
-        payload = crypto[self.suite].decrypt(data)
-        return super().decode(payload, crypto)
+        data += crypto[self.suite].encrypt(bytes_data)
+        return self.parent.encode(contact, dict_data, data)
+
+    def decode(self, data, contact):
+        payload = contact.channels[self.mode]\
+            .crypto[self.suite].decrypt(data)
+        return super().decode(payload, contact)
 
 
 class Protocol():
@@ -337,7 +339,8 @@ class Protocol():
                 # Net AES-encrypted messages.
                 # Key comes from PKI in AES-DHT layer.
                 4: Encrypted('aes-net', submessages={
-                    1: Message('net.pong', is_pongable=True,
+                    1: Message('net.pong',
+                               tags=[Tag('pong_id', ID_SYMBOL)],
                                dht_func=self.on_dht)
                     }),
                 5: Message('testing',
