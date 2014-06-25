@@ -1,11 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from .event import Event
-from .ping import Ping
 from .list import List as list
-
-TIMEOUTMULT = 3
-"""Multiplier as to how long it takes for a ping to time out"""
+from .channel import Channel
 
 
 class Contact():
@@ -22,6 +19,10 @@ class Contact():
     .. attribute:: last_seen
 
         Last time a packet was seen from this address.
+    .. attribute:: channels
+
+        All currently established channels for this contact.
+        {str.: :class:`common.Channel`}
     .. attribute:: on_death
 
         Event thrown when the contact has died.
@@ -50,6 +51,14 @@ class Contact():
     def __repr__(self):
         return '%s' % (self.address)
 
+    @property
+    def is_alive(self):
+        """
+        :return: If this contact is considered 'alive'
+        :rtype: bool.
+        """
+        return self.liveliness > 0
+
     def set_hash(self, hash_):
         """
         Sets the contacts hash.
@@ -59,58 +68,48 @@ class Contact():
         self.hash = hash_
         self.needs_hash = False
 
-    def add_ping(self):
+    def create_channel(self, mode):
         """
-        Adds a ping to the list.
-        This means that it is send but not awk'ed.
+        Creates and returns a channel to this client.
 
-        :returns: Packet id.
-        :rtype: ushort
+        :param mode: The connection mode of this channel.
+        :type mode: str.
         """
-        pkt_id = self.counter
-        self.counter += 1
-        self.pings.append(Ping(pkt_id, datetime.now()))
-        if (self.counter > 65535):
-            self.counter = 0
-        return pkt_id
+        c = Channel(mode, self)
+        c.on_pong += self.change_ping
+        c.on_dead_packet += self.change_liveliness
 
-    def awk_ping(self, pkt_id):
+    class ping_modes():
         """
-        Awknowledge a previous ping.
+        Modes which the ping of a class can be modified.
+        """
+        #: (old / 1.5) + (new / 3)
+        geometric = 'geometric'
+        #: new
+        absolute = 'absolute'
 
-        :param pkt_id: The packet to awk.
-        :type pkt_id: int.
+    def change_ping(self, ping, mode='geometric'):
         """
-        try:
-            # I would love to use PyLINQ
-            # but we are cleaning any old pings too.
-            oldpings = []
-            for ping in self.pings:
-                # If we found the ping that we are trying to awk.
-                if (ping.pkt_id == pkt_id):
-                    time = ping.latency()
-                    time = time.seconds * 1000 + time.microseconds / 1000
-                    self.ping = (self.ping / 1.5) + (time / 3)
-                    self.liveliness = (self.liveliness * 0.8) + 0.2
-                    oldpings.append(ping)
-                    break
-                elif (ping.latency() > timedelta(milliseconds=self.ping *
-                                                 TIMEOUTMULT)):
-                    oldpings.append(ping)
-            map(lambda x: self.kill_ping(x), oldpings)
-        # Happens if ... ?
-        except StopIteration:
-            pass
+        Modifies the ping of this contact.
+        Also sets liveliness, as this is only called when
+        a successful pong is received.
+        """
+        if mode == 'geometric':
+            self.ping = (self.ping / 1.5) + (ping / 3)
+        if mode == 'absolute':
+            self.ping = ping
+        self.change_liveliness(degrade=False)
 
-    def kill_ping(self, ping):
+    def change_liveliness(self, degrade=True):
         """
-        Remove a ping from the list of pending ones.
-        Decreases :attr:`~common.Contact.liveliness`.
+        Degrades or improves liveliness by one packet value.
 
-        :param ping: ping to remove.
-        :type ping: :class:`common.Ping`
+        :param degrade: If liveliness should be decreased.
+        :type degrade: bool.
         """
-        self.pings.remove(ping)
         self.liveliness *= 0.8
-        if (self.liveliness <= 0):
-            self.on_death(self)
+        if degrade:
+            if (self.liveliness <= 0.1):
+                self.on_death(self)
+        else:
+            self.liveliness += 0.2

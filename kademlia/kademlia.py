@@ -26,7 +26,7 @@ class Kademlia():
     """
 
     def __init__(self):
-        self.db_conn = dbinterface()
+        self.db_conn = dbinterface(state.DIR)
 
         self.shortlists = Shortlists()
         self.shortlists.on_search += self.send_search

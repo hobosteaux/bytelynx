@@ -24,10 +24,10 @@ class CryptoModule():
         """
         :returns: An int of the given byte length.
         """
-        return os.urandom(length)
+        return int.from_bytes(os.urandom(length), 'little')
 
     def random_bytes(self, byte_length):
         """
         :returns: A bytes object of byte_length.
         """
-        return int.from_bytes(os.urandom(length), 'small')
+        return os.urandom(length)

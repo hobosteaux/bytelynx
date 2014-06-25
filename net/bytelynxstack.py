@@ -2,6 +2,7 @@ from .tagconstants import Tags
 from .contacttable import ContactTable
 from .prototree import Protocol
 from .udp import Server
+from common import SentPacket, PacketWatcher
 
 
 class Stack():
@@ -15,7 +16,10 @@ class Stack():
         self._server = Server()
         self._contacts = ContactTable()
         self.protocol = Protocol(self._contacts.translate)
+        self.watcher = PacketWatcher()
+        self.watcher.on_resend += self.resend
 
+        # make packet watcher
         self._server.on_data += self.on_data
 
     def on_data(self, address, raw_data):
@@ -40,11 +44,21 @@ class Stack():
         # Do message housekeeping
         msg.on_dht(contact)
         if msg.is_pongable:
-            # TODO: awks - this call goes nowhere
-            contact.awk(data[Tags.pkt_id], msg.mode)
+            self.watcher.rm_packet(data[Tags.pkt_id],
+                                   contact.channels[msg.mode])
 
         # Proc the correct on_data event
         msg.on_data(contact, data)
+
+    def resend(self, pkt):
+        """
+        Resends a previously sent packet.
+
+        :param pkt: The sent packet
+        :type pkt: :class:`~common.SentPacket`
+        """
+        #TODO
+        pass
 
     def send_data(self, contact, msg_name, data):
         """
@@ -58,10 +72,18 @@ class Stack():
         :type data: dict.
         """
         msg = self.protocol.messages[msg_name]
+        # Get a packet id for this message
+        channel = contact.channels[msg.mode]
+        pkt_id = channel.pkt_id
+        data[Tags.PKTID] = pkt_id
+
         # Encode data
-        data = msg.encode(contact.crypto, data)
+        payload = msg.encode(contact.crypto, data)
 
         # Send data to a contact
-        self._server.send(contact.address, data)
+        self._server.send(contact.address, payload)
 
-        # TODO ping assurance? Reliablility?
+        # Check if this message is sent 'reliably'
+        if msg.is_pongable:
+            pkt = SentPacket(pkt_id, payload, contact, channel)
+            self.watcher.add_packet(pkt)

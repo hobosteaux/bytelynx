@@ -14,4 +14,4 @@ VERSION_SYMBOL = ENDIAN + 'B'
 #: The type of message
 TYPE_SYMBOL = ENDIAN + 'B'
 #: The pkt_id
-ID_SYMBOL = ENDIAN + 'I'
+ID_SYMBOL = ENDIAN + 'Q'

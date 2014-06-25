@@ -71,6 +71,21 @@ class List(list):
         """
         raise NotImplemented()
 
+    def split(self, exp):
+        """
+        Splits a list into two lists.
+        :return: Matching and non-matching elements.
+        :rtype: Tuple(list, list)
+        """
+        match = List()
+        nonmatch = List()
+        for item in self:
+            if exp(item):
+                match.append(item)
+            else:
+                nonmatch.append(item)
+        return (match, nonmatch)
+
 
 if __name__ == "__main__":
     l = List()

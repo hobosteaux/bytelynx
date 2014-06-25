@@ -2,8 +2,6 @@ import os
 import struct
 
 from common import Contact, Address, Hash
-import net.ipfinder
-from net import Stack
 
 # Global state variables
 #: This instance's :class:`~common.Contact`
@@ -50,6 +48,9 @@ def __init__():
 
     .. todo:: Init own hash.
     """
+    from net import Stack
+    import net.ipfinder
+
     global SELF
     global NET
 

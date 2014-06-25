@@ -4,7 +4,6 @@ import sqlite3
 from .contact import Contact
 from .address import Address
 from .hash import Hash
-import state
 
 #: Table creation schema
 INITSTATEMENT = '''CREATE TABLE IF NOT EXISTS swarm
@@ -19,8 +18,8 @@ class dbinterface():
     Abstraction layer for the sqlite db.
     """
 
-    def __init__(self):
-        self.conn = sqlite3.connect(state.DIR + 'datastore.sqlite',
+    def __init__(self, state_dir):
+        self.conn = sqlite3.connect(state_dir + 'datastore.sqlite',
                                     check_same_thread=False)
         cur = self.conn.cursor()
         cur.executescript(INITSTATEMENT)

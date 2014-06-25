@@ -123,10 +123,10 @@ class Message():
         for idx, message in self.submessages.items():
             message.set_child_attrs(mode, idx, self)
 
-    def encode(self, crypto, dict_data, bytes_data=b''):
+    def encode(self, contact, dict_data, bytes_data=b''):
         """
-        :param crypto: Crypto handlers for this contact.
-        :type crypto: :class:`crypto.CryptoHandlers`
+        :param contact: Contact that this message is going to.
+        :type contact: :class:`common.Contact`
         :param dict_data: Data to encode.
         :type dict_data: {}
         :param bytes_data: Raw encoded data so far.
@@ -140,7 +140,7 @@ class Message():
         if len(self.tags) > 0:
             for tag in self.tags:
                 data += tag.to_encoded(data[tag.name])
-        return self.parent.encode(crypto, dict_data, data + bytes_data)
+        return self.parent.encode(contact, dict_data, data + bytes_data)
 
     def decode(self, data, crypto):
         """
@@ -180,10 +180,10 @@ class CarrierMessage(Message):
     Everything must be wrapped in this, as it is the root.
     """
 
-    def encode(self, crypto, dict_data, bytes_data):
+    def encode(self, contact, dict_data, bytes_data):
         """
-        :param crypto: Crypto handlers for this contact.
-        :type crypto: :class:`crypto.CryptoHandlers`
+        :param contact: Contact that this message is going to.
+        :type contact: :class:`common.Contact`
         :param dict_data: Data to encode.
         :type dict_data: {}
         :param bytes_data: Raw encoded data so far.
@@ -225,20 +225,22 @@ class Encrypted(Message):
     The initializer must get a string for the encryption
     suite that it uses.
     """
-    def __init__(self, suite, tags=[], submessages=None):
+    def __init__(self, mode, tags=[], submessages=None):
         pkt_id_tag = Tag(Tags.PKTID, ID_SYMBOL)
-        super().__init__([pkt_id_tag] + tags, submessages)
-        self.suite = suite
+        super().__init__(tags=([pkt_id_tag] + tags),
+                         submessages=submessages,
+                         mode=mode)
 
     def encode(self, contact, dict_data, bytes_data):
         data = struct.pack(TYPE_SYMBOL, self.index)
 
-        data += crypto[self.suite].encrypt(bytes_data)
+        data += contact.channels[self.mode]\
+            .crypto.encrypt(bytes_data)
         return self.parent.encode(contact, dict_data, data)
 
     def decode(self, data, contact):
         payload = contact.channels[self.mode]\
-            .crypto[self.suite].decrypt(data)
+            .crypto.decrypt(data)
         return super().decode(payload, contact)
 
 
@@ -328,6 +330,7 @@ class Protocol():
                     # DHT Search
                     3: Message('dht.search', is_pongable=True,
                                tags=[HashTag()],
+
                                dht_func=self.on_dht),
                     # DHT Response
                     4: Message('dht.response', is_pongable=True,
