@@ -13,5 +13,3 @@ SIZE_SYMBOL = ENDIAN + 'H'
 VERSION_SYMBOL = ENDIAN + 'B'
 #: The type of message
 TYPE_SYMBOL = ENDIAN + 'B'
-#: The pkt_id
-ID_SYMBOL = ENDIAN + 'Q'

@@ -1,7 +1,6 @@
 import struct
 
 from common import Hash, Address
-from kademlia import B  # Hashsize in bytes.
 from .common import ENDIAN, SIZE_SYMBOL
 
 
@@ -9,6 +8,8 @@ class Tag():
     """
     Construct to transform a data value to encoded data and back.
     Stores one packed value of a given type.
+
+    .. TODO: Maybe reverse this with BytesTag as the base class
     """
 
     def __init__(self, name, tag_struct):
@@ -49,23 +50,6 @@ class Tag():
         self._value = value
 
 
-class HashTag(Tag):
-    """
-    Tag that encapsulates a :class:`common.Hash` object.
-    """
-
-    def __init__(self):
-        super().__init__('hash', "%ss" % (B // 8))
-
-    @property
-    def _encoded(self):
-        return self._value.value
-
-    @Tag.encoded.setter
-    def encoded(self, value):
-        self._value = Hash(value)
-
-
 class AddressTag(Tag):
     """
     Tag that encapsulates a :class:`common.Address` object.
@@ -95,7 +79,7 @@ class NodeTag(Tag):
     """
 
     def __init__(self, translator):
-        super().__init__('contact', '%ss4BH' % (B // 8))
+        super().__init__('contact', '4BH')
         self.translator = translator
 
     @property
@@ -108,32 +92,17 @@ class NodeTag(Tag):
 
     @Tag.encoded.setter
     def encoded(self, value):
-        raw = struct.unpack(self.tag_struct, value)
+        end_size = struct.calcsize(self.tag_struct)
+        h = value[:-end_size]
+        raw = struct.unpack(self.tag_struct, value[-end_size:])
         contact = self.translator(
-            Address('.'.join(str(x) for x in raw[1:5]), raw[5]))
+            Address('.'.join(str(x) for x in raw[:4]), raw[4]))
         try:
-            contact.set_hash(Hash(raw[0]))
+            contact.set_hash(Hash(h))
         # Happens if the hash has already been set.
         except ValueError:
             pass
         self._value = contact
-
-
-class StringTag(Tag):
-    """
-    Tag that encapsulates a variable-length string.
-    """
-
-    def __init__(self, name):
-        super().__init__(name, '')
-
-    @property
-    def _encoded(self):
-        return bytes(self._value, 'utf-8')
-
-    @Tag.encoded.setter
-    def encoded(self, value):
-        self._value = value.decode('utf-8')
 
 
 class ListTag(Tag):
@@ -166,14 +135,63 @@ class ListTag(Tag):
             x += sz
 
 
-class VarintTag(Tag):
+class BytesTag(Tag):
     """
-    Tag that encapsulates a variable-length integer.
-    Used for DH handshakes.
+    Base tag for any bytes-level values.
+
+    Used for hashes, strings and varints
     """
 
     def __init__(self, name):
         super().__init__(name, '')
+
+    @property
+    def _encoded(self):
+        return self._value
+
+    @Tag.encoded.setter
+    def encoded(self, value):
+        self._value = value
+
+
+class HashTag(BytesTag):
+    """
+    Tag that encapsulates a :class:`common.Hash` object.
+    """
+
+    def __init__(self):
+        super().__init__('hash')
+
+    @property
+    def _encoded(self):
+        return self._value.value
+
+    @Tag.encoded.setter
+    def encoded(self, value):
+        self._value = Hash(value)
+
+
+class StringTag(Tag):
+    """
+    Tag that encapsulates a variable-length string.
+    """
+
+    @property
+    def _encoded(self):
+        return bytes(self._value, 'utf-8')
+
+    @Tag.encoded.setter
+    def encoded(self, value):
+        self._value = value.decode('utf-8')
+
+
+class VarintTag(Tag):
+    """
+    Tag that encapsulates a variable-length integer.
+    Used for DH handshakes.
+
+    Will pad with null bits to reach a byte boundary.
+    """
 
     @property
     def _encoded(self):

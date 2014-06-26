@@ -62,4 +62,4 @@ def __init__():
         SELF = Contact(addr, RANDHASH)
         NET = Stack()
 
-__init__()
+#__init__()

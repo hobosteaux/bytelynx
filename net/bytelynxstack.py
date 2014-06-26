@@ -57,8 +57,9 @@ class Stack():
         :param pkt: The sent packet
         :type pkt: :class:`~common.SentPacket`
         """
-        #TODO
-        pass
+        pkt.refresh()
+        self._server.send(pkt.contact.address, pkt.data)
+        self.watcher.add_packet(pkt)
 
     def send_data(self, contact, msg_name, data):
         """

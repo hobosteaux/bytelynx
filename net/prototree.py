@@ -4,8 +4,8 @@ from net.tag import (Tag, HashTag, VarintTag,
                      ListTag, NodeTag, StringTag)
 from net.common import (MAGIC_HEADER, PROTO_VERSION,
                         TYPE_SYMBOL, SIZE_SYMBOL,
-                        VERSION_SYMBOL, ID_SYMBOL)
-import net.tagconstants as Tags
+                        VERSION_SYMBOL)
+from .tagconstants import Tags
 from common.exceptions import ProtocolError
 from common import Event
 
@@ -226,7 +226,7 @@ class Encrypted(Message):
     suite that it uses.
     """
     def __init__(self, mode, tags=[], submessages=None):
-        pkt_id_tag = Tag(Tags.PKTID, ID_SYMBOL)
+        pkt_id_tag = VarintTag(Tags.PKTID)
         super().__init__(tags=([pkt_id_tag] + tags),
                          submessages=submessages,
                          mode=mode)
@@ -325,7 +325,7 @@ class Protocol():
                     1: Message('dht.ping', is_pongable=True,
                                dht_func=self.on_dht),
                     2: Message('dht.pong',
-                               tags=[Tag('pong_id', ID_SYMBOL)],
+                               tags=[VarintTag('pong_id')],
                                dht_func=self.on_dht),
                     # DHT Search
                     3: Message('dht.search', is_pongable=True,
@@ -343,7 +343,7 @@ class Protocol():
                 # Key comes from PKI in AES-DHT layer.
                 4: Encrypted('aes-net', submessages={
                     1: Message('net.pong',
-                               tags=[Tag('pong_id', ID_SYMBOL)],
+                               tags=[VarintTag('pong_id')],
                                dht_func=self.on_dht)
                     }),
                 5: Message('testing',

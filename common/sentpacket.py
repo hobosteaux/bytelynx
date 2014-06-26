@@ -33,6 +33,13 @@ class SentPacket():
         self.sent_time = datetime.now()
         self.awked = False
 
+    def refresh(self):
+        """
+        'Refreshes' the sent time and any other attrs
+        for when a packet is resent.
+        """
+        self.sent_time = datetime.now()
+
     @property
     def latency(self):
         """

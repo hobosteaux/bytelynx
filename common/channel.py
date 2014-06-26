@@ -2,22 +2,22 @@ from os import urandom
 
 from crypto import MODULES as crypt_mods
 
-"""
-ARCH:
 
-Contact
-    dict[mode] = Channel
+def get_maxint(bit_size):
+    if bit_size <= 0:
+        return 0
+    val = 0xf
+    for i in range(1, bit_size):
+        val = (val << 4) + 0xf
+    return val
 
 
-Channel
-    cryptomodule
-    pkt_ctr
-    resend_watcher
-    on_pong
-
-CryptoModule
-
-"""
+#: The byte size of a packet id
+ID_SIZE = 8
+#: The max value of a packet id
+ID_MAX = get_maxint(ID_SIZE)
+#: The level at which a renegotiate is started
+ID_WARNING = int(0.95 * ID_MAX)
 
 
 class Channel():
@@ -30,29 +30,20 @@ class Channel():
 
         A unique identifier for this connection.
         Must be unique in the set of all channels to this contact.
-    .. attribute:: _pkt_id
+    .. attribute:: state
 
-        The current packet id for this connection.
-    """
-
-    """
-    crypto
-    pkt_ctr
-    packets
-    connection id? -> used to describe which channel is being used
-        Where would this be in the packet?
-        could there be a data leak if this is maliciously changed
-            / matches another one's
-        Could make it so post renegotiation old packets could be used
+        Current state of this channel.
+        ['idle', 'active', 'reneg_issued', 'closed']
     """
 
     def __init__(self, mode):
         # Get the main bytelynx stack
         from state import NET
         self.net = NET
+        self.state = 'idle'
 
         # Random packet id so it is not predictable.
-        self._pkt_id = int.from_bytes(urandom(8), 'little')
+        self._pkt_id = int.from_bytes(urandom(ID_SIZE), 'little')
         self.crypto = crypt_mods[mode]()
 
     @property
@@ -61,10 +52,19 @@ class Channel():
         Gets a packet id and increments the current counter.
         .. note:: This is not locked and is not atomic.
         """
-        # TODO: check if pkt_id is too high / renegotiate
         id_ = self._pkt_id
         self._pkt_id += 1
+        if self._pkt_id > ID_WARNING:
+            self.renegotiate()
+            if self._pkt_id >= ID_MAX:
+                # TODO: Make this a good exception
+                raise Exception('Packet counter above max')
         return id_
 
     def renegotiate(self):
-        pass
+        if self.state is 'active':
+            # TODO: Renegotiate:
+            pass
+        else:
+            # TODO: Make this a good exception
+            raise Exception('Can not renegotiate if not active')
