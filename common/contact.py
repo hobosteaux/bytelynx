@@ -3,6 +3,7 @@ from datetime import datetime
 from .event import Event
 from .list import List as list
 from .channel import Channel
+from .exceptions import ProtocolError
 
 
 class Contact():
@@ -44,6 +45,9 @@ class Contact():
         self.last_seen = datetime.now()
         self.pings = list()
         self.on_death = Event()
+        self.channels = {}
+
+        self.create_channel('bytelynx')
 
     def __str__(self):
         return '%s' % (self.address)
@@ -74,10 +78,15 @@ class Contact():
 
         :param mode: The connection mode of this channel.
         :type mode: str.
+        :returns: The newly created channel.
+        :rtype: :class:`~common.Channel`
         """
-        c = Channel(mode, self)
-        c.on_pong += self.change_ping
-        c.on_dead_packet += self.change_liveliness
+        from crypto import Modules
+        if mode in self.channels:
+            raise ProtocolError('Channel already exists')
+        c = Channel(Modules[mode]())
+        self.channels[mode] = c
+        return c
 
     class ping_modes():
         """

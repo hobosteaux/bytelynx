@@ -1,6 +1,5 @@
 from os import urandom
-
-from crypto import MODULES as crypt_mods
+from threading import Lock
 
 
 def get_maxint(bit_size):
@@ -36,24 +35,29 @@ class Channel():
         ['idle', 'active', 'reneg_issued', 'closed']
     """
 
-    def __init__(self, mode):
+    def __init__(self, crypto):
+        """
+        :param mode: The encryption object.
+        :type mode: Class derived from :class:`~crypto.CryptoModule`
+        """
         # Get the main bytelynx stack
         from state import NET
         self.net = NET
         self.state = 'idle'
+        self._lock = Lock()
 
         # Random packet id so it is not predictable.
         self._pkt_id = int.from_bytes(urandom(ID_SIZE), 'little')
-        self.crypto = crypt_mods[mode]()
+        self.crypto = crypto
 
     @property
     def pkt_id(self):
         """
         Gets a packet id and increments the current counter.
-        .. note:: This is not locked and is not atomic.
         """
-        id_ = self._pkt_id
-        self._pkt_id += 1
+        with self._lock:
+            id_ = self._pkt_id
+            self._pkt_id += 1
         if self._pkt_id > ID_WARNING:
             self.renegotiate()
             if self._pkt_id >= ID_MAX:
@@ -64,7 +68,7 @@ class Channel():
     def renegotiate(self):
         if self.state is 'active':
             # TODO: Renegotiate:
-            pass
+            raise NotImplementedError()
         else:
             # TODO: Make this a good exception
             raise Exception('Can not renegotiate if not active')

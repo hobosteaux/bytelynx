@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from .cryptobase import CryptoModule
+from common.exceptions import CryptoError
 
 
 class DHCrypto(CryptoModule):
@@ -20,45 +21,117 @@ class DHCrypto(CryptoModule):
         The full key for a connection.
     """
 
-    def __init__(self, p):
-        self.p = p
-        self.private = self.random_int(512)
+    def __init__(self):
+        super().__init__()
+        self._private = None
+
+    @property
+    def private(self):
+        # TODO: Make this a dynamic size / etc
+        if self._private is None:
+            self._private = self.random_int(512)
+        return self._private
+
+    @property
+    def p(self):
+        """
+        Returns the current value of p.
+        """
+        return self._p
+
+    @p.setter
+    def p(self, value):
+        """
+        Sets the value of p.
+
+        State: created -> p_set
+
+        :raises: :class:`~common.exceptions.CryptoError`
+        """
+        if self.state != 'created':
+            raise CryptoError('Crypto state is incorrect')
+        self._p = value
+        self.state = 'p_set'
 
     def _check_g(self, g):
         """
-        Checks to see if a g is a good parameter for p.
+        Checks to see if a g is a good parameter for p
         """
+        # TODO: Make this a realistic check
         return True
 
-    def generate_g(self):
-        g = 3
-        self.g = g
-        return g
+    def _set_g(self, value):
+        if self.state != 'p_set':
+            raise CryptoError('Crypto state is incorrect')
+        if not self._check_g(value):
+            raise CryptoError('G value is weak')
+        self.state = 'g_set'
+        self._g = value
 
-    def set_g(self, g):
-        if self._check_g(g):
-            self.g = g
+    @property
+    def g(self):
+        """
+        State: p_set -> g_set
 
-    def get_A(self):
+        :returns: A random g
+        :raises: :class:`~common.exceptions.CryptoError`
+        """
+        # TODO: Make g change.
+        self._set_g(3)
+        return self._g
+
+    @g.setter
+    def g(self, value):
+        """
+        State: p_set -> g_set
+
+        :raises: :class:`~common.exceptions.CryptoError`
+        """
+        self._set_g(value)
+
+    @property
+    def A(self):
         """
         Returns (g^a) % p
-        """
-        return pow(self.g, self.private, self.p)
 
-    def mix_B(self, b):
+        State: p_set | initialized -> N/A
+
+        :raises: :class:`~common.exceptions.CryptoError`
+        """
+        if self.state == 'g_set' or self.state == 'initialized':
+            return pow(self._g, self.private, self.p)
+        else:
+            raise CryptoError('Crypto state is incorrect')
+
+    @property
+    def B(self):
+        raise NotImplementedError('This shdould never be read')
+
+    @B.setter
+    def B(self, value):
         """
         Adds the remote mixture to the key.
+
+        State: g_set -> initialized
+
+        :raises: :class:`~common.exceptions.CryptoError`
         """
-        self.key = pow(b, self.private, self.p)
+        if self.state == 'g_set':
+            self.state = 'initialized'
+            self.key = pow(value, self.private, self.p)
+        else:
+            raise CryptoError('Crypto state is incorrect')
 
 
 def test():
     alice = DHCrypto(23)
     bob = DHCrypto(23)
 
-    bob.set_g(alice.generate_g())
-    bob.mix_B(alice.get_A())
-    alice.mix_B(bob.get_A())
+    bob.g = alice.g
+    print("A: %s, B: %s" % (alice.state, bob.state))
+    bob.B = alice.A
+    print("A: %s, B: %s" % (alice.state, bob.state))
+    alice.B = bob.A
     print("Alice: %s" % alice.key)
     print("Bob: %s" % bob.key)
 

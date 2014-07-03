@@ -1,4 +1,4 @@
-class AbstractException(Exception):
+class AbstractError(Exception):
     """Thrown when a base class has a function that mut be overridden"""
     def __init__(self, message=None):
         if message is None:

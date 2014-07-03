@@ -7,7 +7,8 @@ from ui import Menu, MenuOption
 from common import Hash, Address
 import state
 
-KADEM = Kademlia()
+
+KADEM = None
 
 
 def print_status():
@@ -44,6 +45,11 @@ def search_contact():
     KADEM.init_search(hash_)
 
 if __name__ == '__main__':
+    state.init()
+
+    global KADEM
+    KADEM = Kademlia()
+
     main_menu = Menu([
         MenuOption('Client Status', print_status),
         MenuOption('Bucket Status', print_buckets),

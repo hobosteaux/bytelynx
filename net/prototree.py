@@ -53,7 +53,7 @@ class Message():
         (contact, dict data)
     """
 
-    def __init__(self, *, msg_name='', mode='',
+    def __init__(self, msg_name, *, mode='',
                  is_pongable=False, tags=None,
                  submessages=None, dht_func=None):
         """
@@ -74,7 +74,7 @@ class Message():
         #   F       T   used mode name
         #   F       F   Fail - bad
         if (len(msg_name + mode) > 0) and\
-                (len(msg_name == 0) or len(mode) == 0):
+                (len(msg_name) == 0 or len(mode) == 0):
             self.msg_name = msg_name + mode
         else:
             raise ValueError("A msg_name or mode must be provided")
@@ -227,7 +227,7 @@ class Encrypted(Message):
     """
     def __init__(self, mode, tags=[], submessages=None):
         pkt_id_tag = VarintTag(Tags.PKTID)
-        super().__init__(tags=([pkt_id_tag] + tags),
+        super().__init__('', tags=([pkt_id_tag] + tags),
                          submessages=submessages,
                          mode=mode)
 
@@ -290,8 +290,9 @@ class Protocol():
         if proto is None:
             proto = self.proto
         if len(proto.submessages) > 0:
-            for item in proto.submessages.items:
-                r_dict.update(self.get_decoders(item))
+            for item in proto.submessages.values():
+                print(item)
+                r_dict.update(self.get_messages(item))
         else:
             r_dict[proto.msg_name] = proto
         return r_dict
@@ -313,6 +314,7 @@ class Protocol():
 
         # start-after
         self.proto = CarrierMessage(
+            '',  # This is needed because there is no name
             mode='bytelynx',
             submessages={
                 0: Message('hello', tags=[HashTag()]),
@@ -350,6 +352,6 @@ class Protocol():
                            tags=[Tag('int', 'I'),
                                  ListTag('strlist',
                                          StringTag('names'))])
-                }
-            )
+            }
+        )
         # end-before

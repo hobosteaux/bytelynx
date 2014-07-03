@@ -9,6 +9,8 @@ SELF = None
 #: This instance's :class:`~net.Stack`
 NET = None
 
+#: The DH group that this node is a member of
+GROUP = 721283716213
 #: Default hash for testing
 DEFHASH = hash(b'12345678901234567890')
 #: Default port
@@ -37,7 +39,7 @@ def new_port():
         RANDPORT = struct.unpack('H', os.urandom(2))[0]
 
 
-def __init__():
+def init():
     """
     Sets up the global variables including:
     ::

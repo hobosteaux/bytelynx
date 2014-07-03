@@ -13,8 +13,9 @@ class Stack():
     """
 
     def __init__(self):
+        from state import GROUP
         self._server = Server()
-        self._contacts = ContactTable()
+        self._contacts = ContactTable(GROUP)
         self.protocol = Protocol(self._contacts.translate)
         self.watcher = PacketWatcher()
         self.watcher.on_resend += self.resend

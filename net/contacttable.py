@@ -15,7 +15,11 @@ class ContactTable():
     to :class:`~common.Contact`
     """
 
-    def __init__(self):
+    def __init__(self, dh_group):
+        """
+        :param dh_group: The 'p' parameter for the group.
+        """
+        self._dh_p = dh_group
         self._contacts = {}
         self._last_check = datetime.now()
 
@@ -39,6 +43,7 @@ class ContactTable():
         # Errors if the contact does not exist
         except KeyError:
             contact = Contact(address)
+            contact.channels['bytelynx'].crypto.p = self.dh_p
             contact.on_death += self.clean_contact
             self._contacts[address] = contact
 

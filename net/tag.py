@@ -171,7 +171,7 @@ class HashTag(BytesTag):
         self._value = Hash(value)
 
 
-class StringTag(Tag):
+class StringTag(BytesTag):
     """
     Tag that encapsulates a variable-length string.
     """
@@ -185,7 +185,7 @@ class StringTag(Tag):
         self._value = value.decode('utf-8')
 
 
-class VarintTag(Tag):
+class VarintTag(BytesTag):
     """
     Tag that encapsulates a variable-length integer.
     Used for DH handshakes.
