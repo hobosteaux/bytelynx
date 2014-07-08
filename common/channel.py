@@ -14,7 +14,7 @@ def get_maxint(bit_size):
 #: The byte size of a packet id
 ID_SIZE = 8
 #: The max value of a packet id
-ID_MAX = get_maxint(ID_SIZE)
+ID_MAX = get_maxint(ID_SIZE * 8)
 #: The level at which a renegotiate is started
 ID_WARNING = int(0.95 * ID_MAX)
 
@@ -47,7 +47,10 @@ class Channel():
         self._lock = Lock()
 
         # Random packet id so it is not predictable.
-        self._pkt_id = int.from_bytes(urandom(ID_SIZE), 'little')
+        maxint = get_maxint(ID_SIZE * 8)
+        self._pkt_id = maxint
+        while self._pkt_id > 0.75 * maxint:
+            self._pkt_id = int.from_bytes(urandom(ID_SIZE), 'little')
         self.crypto = crypto
 
     @property

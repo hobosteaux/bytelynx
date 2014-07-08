@@ -32,13 +32,13 @@ class Server():
             raw_data, address = self._sock.recvfrom(65536)
 
             # print('received '+ str(len(data)) +' bytes from '+ str(address))
+            # TODO: Replace error handler
+            #try:
+            address = Address(address[0], address[1])
+            self.on_data(address, raw_data)
 
-            try:
-                address = Address(address[0], address[1])
-                self.on_data(address, raw_data)
-
-            except:
-                print("ERROR:", address, raw_data)
+            #except:
+            #    print("ERROR:", address, raw_data)
 
     def send(self, address, raw_data):
         """

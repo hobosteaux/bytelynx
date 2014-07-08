@@ -89,6 +89,9 @@ class Message():
             self.on_dht += dht_func
         self.on_data = Event()
 
+    def __str__(self):
+        return ("%s [%s]" % (self.msg_name, self.mode))
+
     def set_mode(self, mode):
         """
         Sets the protocol mode for a message and all children.
@@ -114,7 +117,8 @@ class Message():
         # Check if the attr 'mode' exists
         # If not, set it.
         try:
-            self.__getattribute__('mode')
+            if self.mode is '':
+                self.mode = mode
         except AttributeError:
             self.mode = mode
         self.parent = parent
@@ -139,15 +143,15 @@ class Message():
         # Encode all tags for this level
         if len(self.tags) > 0:
             for tag in self.tags:
-                data += tag.to_encoded(data[tag.name])
+                data += tag.to_encoded(dict_data[tag.name])
         return self.parent.encode(contact, dict_data, data + bytes_data)
 
-    def decode(self, data, crypto):
+    def decode(self, data, contact):
         """
         :param data: Data to decode.
         :type data: bytes
-        :param crypto: Crypto handlers for this contact.
-        :type crypto: :class:`crypto.CryptoHandlers`
+        :param contact: Contact that this message is going to.
+        :type contact: :class:`common.Contact`
         :returns: msg_name, data
         """
         msg_name = self.msg_name
@@ -170,7 +174,7 @@ class Message():
             offset += struct.calcsize(TYPE_SYMBOL)
             ret_data[Tags.TYPE] = pkt_type
             msg_name, ret_data[Tags.PAYLOAD] = self.submessages[pkt_type]\
-                .decode(data[offset:], crypto)
+                .decode(data[offset:], contact)
         return msg_name, ret_data
 
 
@@ -193,7 +197,7 @@ class CarrierMessage(Message):
                   struct.pack(VERSION_SYMBOL, PROTO_VERSION))
         return header + bytes_data
 
-    def decode(self, data, crypto):
+    def decode(self, data, contact):
         offset = 0
         # Check for magic string.
         if data[:len(MAGIC_HEADER)] != MAGIC_HEADER:
@@ -214,7 +218,7 @@ class CarrierMessage(Message):
         offset += struct.calcsize(TYPE_SYMBOL)
         # Get data out of it.
         msg_name, r_dict = self.submessages[pkt_type].decode(data[offset:],
-                                                             crypto)
+                                                             contact)
         r_dict[Tags.TYPE] = pkt_type
         return msg_name, r_dict
 
@@ -258,27 +262,28 @@ class Protocol():
         self.set_proto(translator)
         self.messages = self.get_messages(self.proto)
 
-    def decode(self, data, crypto):
+    def decode(self, data, contact):
         """
         Shortcut to decode using the local protocol.
 
         :param data: Raw data to decode.
         :type data: bytes
-        :param crypto: The crypto hander to use.
-        :type crypto: :class:`~crypto.CryptoHandlers`
+        :param contact: The contact that the message belongs to.
+        :type contact: :class:`~common.Contact`
         """
-        return self.proto.decode(data, crypto)
+        return self.proto.decode(data, contact)
 
-    def encode(self, data, crypto):
+    def encode(self, data, contact):
         """
         Shortcut to encode using the local protocol.
 
         :param data: Data to encode.
         :type data: dict
-        :param crypto: The crypto hander to use.
-        :type crypto: :class:`~crypto.CryptoHandlers`
+        :param contact: The contact that the message belongs to.
+        :type contact: :class:`~common.Contact`
         """
-        return self.proto.encode(data, crypto)
+        print('using protocol.encode')
+        return self.proto.encode(data, contact)
 
     def get_messages(self, proto=None):
         """
@@ -291,7 +296,6 @@ class Protocol():
             proto = self.proto
         if len(proto.submessages) > 0:
             for item in proto.submessages.values():
-                print(item)
                 r_dict.update(self.get_messages(item))
         else:
             r_dict[proto.msg_name] = proto

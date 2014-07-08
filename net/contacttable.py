@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from common import List as list
 from common import Contact
 
 #: Time (in minutes) before a contact is removed.
@@ -37,15 +38,15 @@ class ContactTable():
 
         # Get an existing contact
         try:
-            contact = self._contacts[address]
+            contact = self._contacts[address.tuple]
             # Set the last time seen (to now)
             contact.last_seen = datetime.now()
         # Errors if the contact does not exist
         except KeyError:
             contact = Contact(address)
-            contact.channels['bytelynx'].crypto.p = self.dh_p
+            contact.channels['bytelynx'].crypto.p = self._dh_p
             contact.on_death += self.clean_contact
-            self._contacts[address] = contact
+            self._contacts[address.tuple] = contact
 
         # Check for a sweep
         if datetime.now() - self._last_check > \
@@ -57,6 +58,7 @@ class ContactTable():
 
             for item in del_list:
                 item.on_death()
+        return contact
 
     def clean_contact(self, contact):
         """

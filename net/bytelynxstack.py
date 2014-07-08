@@ -2,6 +2,7 @@ from .tagconstants import Tags
 from .contacttable import ContactTable
 from .prototree import Protocol
 from .udp import Server
+from net import protofuncs
 from common import SentPacket, PacketWatcher
 
 
@@ -22,6 +23,13 @@ class Stack():
 
         # make packet watcher
         self._server.on_data += self.on_data
+        self._handle_btlx()
+
+    def _handle_btlx(self):
+        msgs = self.protocol.messages
+        msgs['hello'].on_data += protofuncs.on_hello
+        msgs['dh.g'].on_data += protofuncs.on_dh_g
+        msgs['dh.mix'].on_data += protofuncs.on_dh_B
 
     def on_data(self, address, raw_data):
         """
@@ -39,7 +47,7 @@ class Stack():
         contact = self._contacts.translate(address)
 
         # Decode the packet
-        msg_name, data = self.protocol.decode(raw_data, contact.crypto)
+        msg_name, data = self.protocol.decode(raw_data, contact)
 
         msg = self.protocol.messages[msg_name]
         # Do message housekeeping
@@ -74,13 +82,14 @@ class Stack():
         :type data: dict.
         """
         msg = self.protocol.messages[msg_name]
+        print("Sending message: %s" % msg)
         # Get a packet id for this message
         channel = contact.channels[msg.mode]
         pkt_id = channel.pkt_id
         data[Tags.PKTID] = pkt_id
 
         # Encode data
-        payload = msg.encode(contact.crypto, data)
+        payload = msg.encode(contact, data)
 
         # Send data to a contact
         self._server.send(contact.address, payload)

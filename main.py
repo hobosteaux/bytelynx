@@ -4,11 +4,8 @@ import base64
 
 from kademlia import Kademlia
 from ui import Menu, MenuOption
-from common import Hash, Address
+from common import Hash, Address, Contact
 import state
-
-
-KADEM = None
 
 
 def print_status():
@@ -22,7 +19,7 @@ def print_buckets():
             print(idx, bucket.contacts)
 
 
-def print_shortlistss():
+def print_shortlists():
     for item in KADEM.shortlists._shortlists:
         print(KADEM.shortlists._shortlists[item])
 
@@ -33,7 +30,9 @@ def add_contact():
         ip = '127.0.0.1'
     port = int(input("Port: "))
     addr = Address(ip, port)
-    KADEM.send_ping(addr)
+    state.NET.send_data(Contact(addr),
+                        'hello',
+                        {'hash': state.SELF.hash})
 
 
 def search_contact():
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     main_menu = Menu([
         MenuOption('Client Status', print_status),
         MenuOption('Bucket Status', print_buckets),
-        MenuOption('Shorty Status', print_shortlistss),
+        MenuOption('Shorty Status', print_shortlists),
         MenuOption('Add Contact', add_contact),
         MenuOption('Search for Contact', search_contact)
     ])

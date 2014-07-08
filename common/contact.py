@@ -66,11 +66,14 @@ class Contact():
     def set_hash(self, hash_):
         """
         Sets the contacts hash.
+
+        :returns: If the hash was set
         """
-        if not self.needs_hash:
-            raise ValueError("Hash already set")
-        self.hash = hash_
-        self.needs_hash = False
+        if self.needs_hash:
+            self.hash = hash_
+            self.needs_hash = False
+            return True
+        return False
 
     def create_channel(self, mode):
         """

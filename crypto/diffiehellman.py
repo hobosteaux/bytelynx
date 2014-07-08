@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from .cryptobase import CryptoModule
-from common.exceptions import CryptoError
+from common.exceptions import CryptoError, ProtocolError
 
 
 class DHCrypto(CryptoModule):
@@ -11,12 +11,6 @@ class DHCrypto(CryptoModule):
     This serves to act as a password for the network to keep other
     non-authorized entities out.
 
-    .. attribute:: p
-        The modulus to use.
-    .. attribute:: g
-        The generator to use.
-    .. attribute:: a
-        This node's secret.
     .. attribute:: key
         The full key for a connection.
     """
@@ -24,6 +18,7 @@ class DHCrypto(CryptoModule):
     def __init__(self):
         super().__init__()
         self._private = None
+        self._sent_a = False
 
     @property
     def private(self):
@@ -98,7 +93,10 @@ class DHCrypto(CryptoModule):
 
         :raises: :class:`~common.exceptions.CryptoError`
         """
+        if self._sent_a:
+            raise ProtocolError("A has already been sent")
         if self.state == 'g_set' or self.state == 'initialized':
+            self._sent_a = True
             return pow(self._g, self.private, self.p)
         else:
             raise CryptoError('Crypto state is incorrect')
@@ -122,16 +120,35 @@ class DHCrypto(CryptoModule):
         else:
             raise CryptoError('Crypto state is incorrect')
 
+    @property
+    def is_inited(self):
+        """
+        :returns: If this dh module is fully initialized.
+        """
+        return self.state == 'initialized'
+
+    @property
+    def is_free(self):
+        """
+        :returns: If this dh module is free to begin handshaking.
+        """
+        return self.state == 'p_set'
+
 
 def test():
-    alice = DHCrypto(23)
-    bob = DHCrypto(23)
+    alice = DHCrypto()
+    bob = DHCrypto()
 
+    alice.p = 23
+    print("A: %s, B: %s" % (alice.state, bob.state))
+    bob.p = 23
+    print("A: %s, B: %s" % (alice.state, bob.state))
     bob.g = alice.g
     print("A: %s, B: %s" % (alice.state, bob.state))
     bob.B = alice.A
     print("A: %s, B: %s" % (alice.state, bob.state))
     alice.B = bob.A
+    print("A: %s, B: %s" % (alice.state, bob.state))
     print("Alice: %s" % alice.key)
     print("Bob: %s" % bob.key)
 
