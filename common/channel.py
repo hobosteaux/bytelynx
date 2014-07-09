@@ -40,9 +40,9 @@ class Channel():
         :param mode: The encryption object.
         :type mode: Class derived from :class:`~crypto.CryptoModule`
         """
+
         # Get the main bytelynx stack
-        from state import NET
-        self.net = NET
+        # self.net = state.get().net
         self.state = 'idle'
         self._lock = Lock()
 

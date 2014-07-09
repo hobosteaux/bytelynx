@@ -2,7 +2,6 @@ import socket
 from threading import Thread
 
 from common import Address, Event
-import state
 
 
 class Server():
@@ -14,9 +13,9 @@ class Server():
         A tuple of (:class:`net.Address`, raw_data)
     """
 
-    def __init__(self):
+    def __init__(self, port):
         self.on_data = Event()
-        self._bind_address = ('', state.SELF.address.port)
+        self._bind_address = ('', port)
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(self._bind_address)
         self._listener_thread = Thread(target=self.listen)

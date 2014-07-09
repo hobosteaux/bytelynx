@@ -2,66 +2,79 @@ import os
 import struct
 
 from common import Contact, Address, Hash
+from net import Stack
+import net.ipfinder
+from kademlia import Kademlia
 
-# Global state variables
-#: This instance's :class:`~common.Contact`
-SELF = None
-#: This instance's :class:`~net.Stack`
-NET = None
-
-#: The DH group that this node is a member of
-GROUP = 721283716213
-#: Default hash for testing
-DEFHASH = hash(b'12345678901234567890')
-#: Default port
-DEFPORT = 8906
-#: Random hash, also for testing
-RANDHASH = Hash(os.urandom(20))
-#: Placeholder for arandom port
-RANDPORT = 0
-#: Virtual root dir for the instance
-DIR = 'tmp/' + RANDHASH.base64[:10] + '/'
-
-os.makedirs(DIR)
+STATE = None
 
 
-def new_port():
+class _State():
     """
-    Gets a random free port > 10000.
+    Class for holding all the global state.
 
-    .. todo::
-        Check if the port is free.
-        And if it is < 65000.
+    .. attribute:: contact
+
+        This instance's :class:`~common.Contact`
+    .. attribute:: net
+
+        This instance's :class:`~net.Stack`
+    .. attribute:: kademlia
+
+        This instance's :class:`~kademlia.Kademlia`
+    .. attribute:: dh_group
+
+        The group id that this node is a member of
+    .. attribute:: dir
+
+        Where all atrifacts from this instance are kept
     """
-    global RANDPORT
-    RANDPORT = struct.unpack('H', os.urandom(2))[0]
-    while (RANDPORT < 10000):
-        RANDPORT = struct.unpack('H', os.urandom(2))[0]
 
+    # TODO: Make these count
+    USE_RAND_PORT = True
+    USE_RAND_HASH = True
+    DEFHASH = hash(b'12345678901234567890')
+    DEFPORT = 8906
 
-def init():
-    """
-    Sets up the global variables including:
-    ::
-        Port
-        Hash
-        Own address
-        Own Contact
+    def __init__(self):
 
-    .. todo:: Init own hash.
-    """
-    from net import Stack
-    import net.ipfinder
-
-    global SELF
-    global NET
-
-    if SELF is None:
         print("Initing globals")
-        new_port()
+        hash_ = Hash(os.urandom(20))
+        # Set up dir first for artifacts
+        self.dir = 'tmp/' + hash_.base64[:10] + '/'
+        os.makedirs(self.dir)
 
-        addr = Address(net.ipfinder.check_in(), RANDPORT)
-        SELF = Contact(addr, RANDHASH)
-        NET = Stack()
+        # TODO: load this from config
+        self.dh_group = 721283716213
 
-#__init__()
+        # Set up the networking core
+        port = self.new_port()
+
+        addr = Address(net.ipfinder.check_in(), port)
+        self.contact = Contact(addr, hash_)
+        self.net = Stack(port, self.dh_group)
+        self.kademlia = Kademlia(self.net, self.contact,
+                                 self.dir)
+
+    def new_port(self):
+        """
+        Gets a random free port > 10000.
+
+        .. TODO::
+            Check if the port is free.
+            And if it is < 65000.
+        """
+        rport = struct.unpack('H', os.urandom(2))[0]
+        while (rport < 10000):
+            rport = struct.unpack('H', os.urandom(2))[0]
+        return rport
+
+
+def get():
+    """
+    Accessor for the state singleton
+    """
+    global STATE
+    if STATE is None:
+        STATE = _State()
+    return STATE

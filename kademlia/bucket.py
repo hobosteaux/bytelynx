@@ -2,7 +2,6 @@ from datetime import datetime
 
 from common import Event, List as list
 from .constants import K, B
-import state
 
 
 class Bucket:
@@ -101,7 +100,8 @@ class Buckets():
         Event(:class:`~common.Client`)
     """
 
-    def __init__(self):
+    def __init__(self, own_hash):
+        self.own_hash = own_hash
         self._last_check = datetime.now()
         self.on_added = Event()
         self.on_removed = Event()
@@ -130,7 +130,7 @@ class Buckets():
         :type contact: :class:`common.Contact`
         :param report: Pop the :func:`~common.Bucket.on_added` event or not.
         """
-        loc = (contact.hash ^ state.SELF.hash).significant_bit()
+        loc = (contact.hash ^ self.own_hash).significant_bit()
         self._buckets[loc].update(contact, report)
 
     def get_exact(self, hash, use_waitlist=False):
@@ -142,7 +142,7 @@ class Buckets():
         :param use_waitlist: Search through the waitlists as well.
         :type use_waitlist: bool.
         """
-        significant_bit = (state.SELF.hash ^ hash).significant_bit()
+        significant_bit = (self.own_hash ^ hash).significant_bit()
         if (not use_waitlist):
             return self._buckets[significant_bit]\
                 .contacts.first(lambda x: x.hash == hash)
@@ -160,7 +160,7 @@ class Buckets():
         :param count: Number of contacts to return.
         :type count: int.
         """
-        targethash = (state.SELF.hash ^ hash)
+        targethash = (self.own_hash ^ hash)
         significant_bit = targethash.significant_bit()
         contacts = list(self._buckets[significant_bit].contacts)
         # If we have a perfect bucket size, return all.
@@ -180,5 +180,5 @@ class Buckets():
             contacts += self._buckets[si[(dindex * 2) + 1]].contacts
             if (len(contacts) >= B):
                 return sorted(contacts, key=lambda x:
-                              targethash.AbsDiff(state.SELF.hash ^ x.hash))[:20]
+                              targethash.AbsDiff(self.own_hash ^ x.hash))[:20]
         return contacts

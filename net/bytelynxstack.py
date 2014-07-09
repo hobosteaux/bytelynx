@@ -13,10 +13,9 @@ class Stack():
     as houses the on_data events for parsed packets.
     """
 
-    def __init__(self):
-        from state import GROUP
-        self._server = Server()
-        self._contacts = ContactTable(GROUP)
+    def __init__(self, port, dh_group):
+        self._server = Server(port)
+        self._contacts = ContactTable(dh_group)
         self.protocol = Protocol(self._contacts.translate)
         self.watcher = PacketWatcher()
         self.watcher.on_resend += self.resend

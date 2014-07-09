@@ -1,10 +1,7 @@
 #!/usr/bin/python3
-# Import structures
-import state
 from .bucket import Buckets
 from .shortlist import Shortlists
 from common import dbinterface
-# import net.tagconstants as Tags
 
 
 class Kademlia():
@@ -25,20 +22,21 @@ class Kademlia():
         Database handle :class:`common.dbinterface`
     """
 
-    def __init__(self):
-        self.db_conn = dbinterface(state.DIR)
+    def __init__(self, net, own_contact, dir_):
+        self.db_conn = dbinterface(dir_)
+        self.net = net
 
         self.shortlists = Shortlists()
         self.shortlists.on_search += self.send_search
         self.shortlists.on_full_or_found += self.end_search
 
-        self.buckets = Buckets()
+        self.buckets = Buckets(own_contact.hash)
         self.buckets.on_added += self.db_conn.add_contact
         self.buckets.on_removed += self.db_conn.rm_contact
-        contacts = self.db_conn.contacts() + [state.SELF]
+        contacts = self.db_conn.contacts() + [own_contact]
         self.buckets.seed(contacts)
 
-        state.NET.protocol.on_dht += self.dht_handler
+        self.net.protocol.on_dht += self.dht_handler
 
     def dht_handler(self, contact):
         """
@@ -56,7 +54,7 @@ class Kademlia():
         """
         contacts = self.buckets.get_closest(data['hash'])
         retData = {'hash': data['hash'], 'nodes': contacts}
-        state.NET.send_data(contact, 'dht.response', retData)
+        self.net.send_data(contact, 'dht.response', retData)
 
     def on_find_node_response(self, contact, data):
         contacts = data['nodes']
@@ -72,7 +70,7 @@ class Kademlia():
         :param addr: Address to send it to.
         :type addr: :class:`~common.Contact`
         """
-        state.NET.send_data(contact, 'dht.ping', {})
+        self.net.send_data(contact, 'dht.ping', {})
 
     def init_search(self, hash_):
         """
@@ -96,7 +94,7 @@ class Kademlia():
         :type contact: :class:`~common.Contact`
         """
         data = {'hash': hash_}
-        state.NET.send_data(contact, 'dht.search', data)
+        self.net.send_data(contact, 'dht.search', data)
 
     def end_search(self, hash_, contact):
         """

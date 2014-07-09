@@ -12,11 +12,12 @@ def on_hello(contact, data):
 
     If the hash already exists, initiates a DH exchange.
     """
+    s = state.get()
     crypto = contact.channels['bytelynx'].crypto
     if contact.set_hash(data['hash']):
-        state.NET.send_data(contact, 'hello', {'hash': state.SELF.hash})
+        s.net.send_data(contact, 'hello', {'hash': s.contact.hash})
     elif crypto.is_free:
-        state.NET.send_data(contact, 'dh.g', {'dh_g': crypto.g})
+        s.net.send_data(contact, 'dh.g', {'dh_g': crypto.g})
 
 
 def on_dh_g(contact, data):
@@ -26,7 +27,7 @@ def on_dh_g(contact, data):
     """
     crypto = contact.channels['bytelynx'].crypto
     crypto.g = data['dh_g']
-    state.NET.send_data(contact, 'dh.mix', {'dh_B': crypto.A})
+    state.get().net.send_data(contact, 'dh.mix', {'dh_B': crypto.A})
 
 
 def on_dh_B(contact, data):
@@ -51,7 +52,7 @@ def on_dh_B(contact, data):
 
     # Try to send our A, if needed
     try:
-        state.NET.send_data(contact, 'dh.mix', {'dh_B': dh_crypto.A})
+        state.get().net.send_data(contact, 'dh.mix', {'dh_B': dh_crypto.A})
     # Happens if we have already sent an A
     except ProtocolError:
         pass
