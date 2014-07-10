@@ -52,7 +52,7 @@ class Stack():
         # Do message housekeeping
         msg.on_dht(contact)
         if msg.is_pongable:
-            self.watcher.rm_packet(data[Tags.pkt_id],
+            self.watcher.rm_packet(data[Tags.PKTID],
                                    contact.channels[msg.mode])
 
         # Proc the correct on_data event

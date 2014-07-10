@@ -7,9 +7,11 @@ from .hash import Hash
 
 #: Table creation schema
 INITSTATEMENT = '''CREATE TABLE IF NOT EXISTS swarm
-                    (key INTEGER PRIMARY KEY, ip VARCHAR(15), port INTEGER, hash BLOB);
+                    (key INTEGER PRIMARY KEY, ip VARCHAR(15),
+                     port INTEGER, hash BLOB);
                    CREATE TABLE IF NOT EXISTS friends
-                    (key INTEGER PRIMARY KEY, nickname TEXT, publickey blob);
+                    (key INTEGER PRIMARY KEY, nickname TEXT,
+                     publickey blob);
                 '''
 
 
@@ -48,9 +50,9 @@ class dbinterface():
         """
         statement = 'INSERT INTO swarm(ip, port, hash) VALUES(?,?,?)'
         cur = self.conn.cursor()
-        cur.execute(statement, (contact.Address.IP,
-                                contact.Address.Port,
-                                contact.Hash.Value))
+        cur.execute(statement, (contact.address.ip,
+                                contact.address.port,
+                                contact.hash.value))
         self.conn.commit()
         cur.close()
 

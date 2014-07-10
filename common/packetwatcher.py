@@ -64,16 +64,16 @@ class PacketWatcher():
 
     def rm_packet(self, pkt_id, channel):
         with self._lock:
-            self._action_list.append(self._rm_packet,
-                                     (pkt_id, channel))
+            self._action_list.append((self._rm_packet,
+                                     (pkt_id, channel)))
 
     def _rm_packet(self, pkt_info):
         self._rm_dict[pkt_info] = True
 
     def add_packet(self, packet):
         with self._lock:
-            self._action_list.append(self._add_packet,
-                                     packet)
+            self._action_list.append((self._add_packet,
+                                      packet))
 
     def _add_packet(self, packet):
         """

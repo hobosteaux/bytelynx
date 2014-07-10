@@ -139,12 +139,18 @@ class Message():
         # Encode the msg type
         # self.index should never == -1 (default)
         # UNLESS this is the top level proto wrapper
+        # which overloads encode
         data = struct.pack(TYPE_SYMBOL, self.index)
+        data += self._encode(dict_data)
+        return self.parent.encode(contact, dict_data, data + bytes_data)
+
+    def _encode(self, dict_data):
+        data = b''
         # Encode all tags for this level
         if len(self.tags) > 0:
             for tag in self.tags:
                 data += tag.to_encoded(dict_data[tag.name])
-        return self.parent.encode(contact, dict_data, data + bytes_data)
+        return data
 
     def decode(self, data, contact):
         """
@@ -228,6 +234,8 @@ class Encrypted(Message):
     Message for and encrypted data.
     The initializer must get a string for the encryption
     suite that it uses.
+
+    .. note:: Right now this MUST have submessages
     """
     def __init__(self, mode, tags=[], submessages=None):
         pkt_id_tag = VarintTag(Tags.PKTID)
@@ -237,7 +245,7 @@ class Encrypted(Message):
 
     def encode(self, contact, dict_data, bytes_data):
         data = struct.pack(TYPE_SYMBOL, self.index)
-
+        bytes_data = self._encode(dict_data) + bytes_data
         data += contact.channels[self.mode]\
             .crypto.encrypt(bytes_data)
         return self.parent.encode(contact, dict_data, data)

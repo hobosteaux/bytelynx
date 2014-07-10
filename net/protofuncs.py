@@ -2,7 +2,7 @@
 import state
 from common.exceptions import ProtocolError
 from crypto.aesgcm import KEY_SIZE
-from crypto import SHAModes, Modules
+from crypto import SHAModes
 
 
 def on_hello(contact, data):
@@ -45,14 +45,14 @@ def on_dh_B(contact, data):
     s_hash = sha_func(shared.to_bytes(KEY_SIZE, 'little')).digest()
 
     # Create our AES crypto
-    aes_crypto = Modules['aes-dht']()
+    aes_crypto = contact.create_channel('aes-dht').crypto
     aes_crypto.set_key(s_hash)
-    contact.channels['aes-dht'] = aes_crypto
-    print("AES key: %s" % aes_crypto.key)
+    # print("AES key: %s" % aes_crypto.key)
 
     # Try to send our A, if needed
     try:
         state.get().net.send_data(contact, 'dh.mix', {'dh_B': dh_crypto.A})
     # Happens if we have already sent an A
+    # Send a DHT hello
     except ProtocolError:
-        pass
+        state.get().net.send_data(contact, 'dht.ping', {})
