@@ -2,7 +2,6 @@
 from collections import namedtuple
 
 from .constants import K, A
-import state
 from common import Contact, Address, Hash, Event
 from common import List as list
 
@@ -53,7 +52,7 @@ class Shortlist():
         Fired when all closer contacts are exausted or the contact is found.
     """
 
-    def __init__(self, target_hash, initialContacts):
+    def __init__(self, own_hash, target_hash, initialContacts):
         """
         :param target_hash: The :hash that this shortlist is seaching for.
         :type target_hash: :class:`common.Hash`
@@ -62,7 +61,7 @@ class Shortlist():
         """
         self.search_space = list(SearchContact(False, x)
                                  for x in initialContacts)
-        self.own_hash = state.SELF.hash_
+        self.own_hash = own_hash
         self.target_hash = target_hash
         self.on_full_or_found = Event()
         self.in_progress = []
@@ -236,7 +235,8 @@ class Shortlists():
         Returns either the contact or the closest one found.
     """
 
-    def __init__(self):
+    def __init__(self, own_hash):
+        self._own_hash = own_hash
         self._shortlists = {}  # {hash : shortlist}
         self._task_queue = Queue()
         self.on_search = Event()
@@ -257,7 +257,7 @@ class Shortlists():
         self._task_queue.put((self._start_search, (hash_, contacts)))
 
     def _start_search(self, hash_, contacts):
-        self._shortlists[hash_] = Shortlist(hash_, contacts)
+        self._shortlists[hash_] = Shortlist(self._own_hash, hash_, contacts)
         self._shortlists[hash_].on_full_or_found += self.on_full_or_found
         self._shortlists[hash_].on_full_or_found += self.rm_list
 

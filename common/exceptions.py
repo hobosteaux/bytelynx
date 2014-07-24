@@ -9,12 +9,3 @@ class AbstractError(Exception):
 class ProtocolError(Exception):
     """Exception thrown if decoding goes awry."""
     pass
-
-
-class CryptoError(Exception):
-    """Exception thrown if something is wrong with crypto."""
-    pass
-
-
-class KeySizeError(CryptoError):
-    """Exception thrown if the key is an incorrect size."""

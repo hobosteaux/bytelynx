@@ -30,6 +30,9 @@ class Stack():
         msgs['dh.g'].on_data += protofuncs.on_dh_g
         msgs['dh.mix'].on_data += protofuncs.on_dh_B
 
+    def seed_contacts(self, contacts):
+        self._contacts.seed(contacts)
+
     def on_data(self, address, raw_data):
         """
         Primary access point for any raw data received by the server.

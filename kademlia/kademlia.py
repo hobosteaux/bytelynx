@@ -22,21 +22,31 @@ class Kademlia():
         Database handle :class:`common.dbinterface`
     """
 
-    def __init__(self, net, own_contact, dir_):
+    def __init__(self, net, own_contact, dir_, contact_table):
         self.db_conn = dbinterface(dir_)
         self.net = net
 
-        self.shortlists = Shortlists()
+        self.shortlists = Shortlists(own_contact.hash_)
         self.shortlists.on_search += self.send_search
         self.shortlists.on_full_or_found += self.end_search
 
         self.buckets = Buckets(own_contact.hash)
         self.buckets.on_added += self.db_conn.add_contact
         self.buckets.on_removed += self.db_conn.rm_contact
-        contacts = self.db_conn.contacts() + [own_contact]
-        self.buckets.seed(contacts)
+        db_contacts = self.db_conn.contacts() + [own_contact]
+        self.net.seed_contacts(db_contacts)
 
+        all_contacts = db_contacts + [own_contact]
+        self.buckets.seed(all_contacts)
+
+        self._register_protocol()
+
+    def _register_protocol(self):
         self.net.protocol.on_dht += self.dht_handler
+
+        msgs = self.net.protocol.messages
+        msgs['dht.search'].on_data += self.on_find_node_request
+        msgs['dht.response'].on_data += self.on_find_node_response
 
     def dht_handler(self, contact):
         """
@@ -58,6 +68,8 @@ class Kademlia():
 
     def on_find_node_response(self, contact, data):
         contacts = data['nodes']
+        # TODO: can we just 'make' contacts without the contacttable?
+        # Should the shortlist translate if they are 'virtual'?
         self.shortlists.add_response(data['hash'],
                                      contact.address,
                                      contacts)

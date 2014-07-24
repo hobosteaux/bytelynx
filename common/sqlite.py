@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sqlite3
 
-from .contact import Contact
+from .contact import Contact, Friend
 from .address import Address
 from .hash import Hash
 
@@ -14,6 +14,8 @@ INITSTATEMENT = '''CREATE TABLE IF NOT EXISTS swarm
                      publickey blob);
                 '''
 
+
+# TODO: Clean up this interface. Can sqlite do this better for me?
 
 class dbinterface():
     """
@@ -66,5 +68,26 @@ class dbinterface():
         statement = 'DELETE FROM swarm WHERE ip=? and port=?'
         cur = self.conn.cursor()
         cur.execute(statement, contact.Address.AsTuple())
+        self.conn.commit()
+        cur.close()
+
+    @property
+    def friends(self):
+        statement = 'SELECT (nickname, publickey) FROM friends'
+        cur = self.conn.cursor()
+        cur.execute(statement)
+        return list(map(lambda x: Friend(x['publickey'], x['nickname'])))
+
+    def add_friend(self, friend):
+        statement = 'INSERT INTO friends(publickey, nickname) VALUES(?,?)'
+        cur = self.conn.cursor()
+        cur.execute(statement, (friend.pubkey, friend.nick))
+        self.conn.commit()
+        cur.close()
+
+    def rm_friend(self, friend):
+        statement = 'DELETE FROM friends WHERE publickey=? and nickname=?'
+        cur = self.conn.cursor()
+        cur.execute(statement, (friend.pubkey, friend.nick))
         self.conn.commit()
         cur.close()

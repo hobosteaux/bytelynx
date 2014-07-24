@@ -4,6 +4,7 @@ from .event import Event
 from .list import List as list
 from .channel import Channel
 from .exceptions import ProtocolError
+from .hash import hash_from_pub
 
 
 class Contact():
@@ -24,6 +25,9 @@ class Contact():
 
         All currently established channels for this contact.
         {str.: :class:`common.Channel`}
+    .. attribute:: is_friend
+
+        If this contact is a friend.
     .. attribute:: on_death
 
         Event thrown when the contact has died.
@@ -46,6 +50,7 @@ class Contact():
         self.pings = list()
         self.on_death = Event()
         self.channels = {}
+        self.is_friend = False
 
         self.create_channel('bytelynx')
 
@@ -70,6 +75,7 @@ class Contact():
         :returns: If the hash was set
         """
         if self.needs_hash:
+            # TODO: make this proc an event
             self.hash = hash_
             self.needs_hash = False
             return True
@@ -125,3 +131,32 @@ class Contact():
                 self.on_death(self)
         else:
             self.liveliness += 0.2
+
+
+class Friend():
+    """
+    A contact noted as a 'friend'.
+    This begins detached for real contacts and
+    must be associated with one seen over the wire.
+
+    .. attribute:: hash
+
+        The friend's hash
+    """
+
+    def __init__(self, pubkey, nick):
+        self.pubkey = pubkey
+        self.nick = nick
+        # find hash
+        # NastyImport
+        import state
+        bitsize = state.get().bitsize
+        self.hash = hash_from_pub(pubkey, bitsize)
+
+        self.contact = None
+
+    def associate(self, contact):
+        self.contact = contact
+        chan = contact.create_channel('rsa-ex')
+        # TODO
+        # set child RSA crypto

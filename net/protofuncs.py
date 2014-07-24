@@ -56,3 +56,20 @@ def on_dh_B(contact, data):
     # Send a DHT hello
     except ProtocolError:
         state.get().net.send_data(contact, 'dht.ping', {})
+
+
+def on_pubkey_request(contact, data):
+    """
+    Handler for when a public key is requested by a contact.
+    """
+
+def on_pubkey_response(contact, data):
+    """
+    Handler for when a public key is received from a contact.
+    """
+
+def on_rsa_exchange(contact, data):
+    """
+    Handler for an RSA nonce exchange.
+    """
+

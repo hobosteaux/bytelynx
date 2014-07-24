@@ -50,6 +50,17 @@ class Tag():
         self._value = value
 
 
+class BoolTag(Tag):
+    """
+    Tag to encapsulate a single bool.
+    This is quite inefficient, as it takes 1 byte for the bool
+    as well as 2 bytes for the size before it
+    """
+
+    def __init__(self, name):
+        super().__init__(name, '?')
+
+
 class AddressTag(Tag):
     """
     Tag that encapsulates a :class:`common.Address` object.

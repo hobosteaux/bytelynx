@@ -1,7 +1,8 @@
 import struct
 
 from net.tag import (Tag, HashTag, VarintTag,
-                     ListTag, NodeTag, StringTag)
+                     ListTag, NodeTag, StringTag,
+                     BytesTag)
 from net.common import (MAGIC_HEADER, PROTO_VERSION,
                         TYPE_SYMBOL, SIZE_SYMBOL,
                         VERSION_SYMBOL)
@@ -329,6 +330,7 @@ class Protocol():
             '',  # This is needed because there is no name
             mode='bytelynx',
             submessages={
+                # TODO: The whole outer layer should be HMAC'd
                 0: Message('hello', tags=[HashTag()]),
                 1: Message('dh.g', tags=[VarintTag('dh_g')]),
                 2: Message('dh.mix', tags=[VarintTag('dh_B')]),
@@ -344,7 +346,6 @@ class Protocol():
                     # DHT Search
                     3: Message('dht.search', is_pongable=True,
                                tags=[HashTag()],
-
                                dht_func=self.on_dht),
                     # DHT Response
                     4: Message('dht.response', is_pongable=True,
@@ -352,6 +353,16 @@ class Protocol():
                                      ListTag('nodes',
                                              NodeTag(translator))],
                                dht_func=self.on_dht),
+                    # Public key share
+                    5: Message('rsa.pubkey.request', is_pongable=True,
+                               dht_func=self.on_dht),
+                    6: Message('rsa.pubkey.response', is_pongable=True,
+                               tags=[BytesTag('key')],
+                               dht_func=self.on_dht),
+                    7: Encrypted('rsa-ex', is_pongable=True, submessages={
+                        1: Message('rsa.ex',
+                                   tags=[BytesTag('iv')])
+                        })
                     }),
                 # Net AES-encrypted messages.
                 # Key comes from PKI in AES-DHT layer.

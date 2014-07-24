@@ -35,11 +35,15 @@ class _State():
     USE_RAND_HASH = True
     DEFHASH = hash(b'12345678901234567890')
     DEFPORT = 8906
+    DEFBIT = 320
 
     def __init__(self):
+        self.bitsize = self.DEFBIT
+
+        # TODO: Load pub / priv, base hash off of this.
 
         print("Initing globals")
-        hash_ = Hash(os.urandom(20))
+        hash_ = Hash(os.urandom(self.bitsize // 8))
         # Set up dir first for artifacts
         self.dir = 'tmp/' + hash_.base64[:10] + '/'
         os.makedirs(self.dir)
