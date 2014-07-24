@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from .cryptobase import CryptoModule
-from common.exceptions import CryptoError, ProtocolError
+from .exceptions import CryptoError, StateError
 
 
 class DHCrypto(CryptoModule):
@@ -41,10 +41,10 @@ class DHCrypto(CryptoModule):
 
         State: created -> p_set
 
-        :raises: :class:`~common.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.StateError`
         """
         if self.state != 'created':
-            raise CryptoError('Crypto state is incorrect')
+            raise StateError('Crypto state is incorrect')
         self._p = value
         self.state = 'p_set'
 
@@ -57,7 +57,7 @@ class DHCrypto(CryptoModule):
 
     def _set_g(self, value):
         if self.state != 'p_set':
-            raise CryptoError('Crypto state is incorrect')
+            raise StateError('Crypto state is incorrect')
         if not self._check_g(value):
             raise CryptoError('G value is weak')
         self.state = 'g_set'
@@ -69,7 +69,8 @@ class DHCrypto(CryptoModule):
         State: p_set -> g_set
 
         :returns: A random g
-        :raises: :class:`~common.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.StateError`
         """
         # TODO: Make g change.
         self._set_g(3)
@@ -80,7 +81,8 @@ class DHCrypto(CryptoModule):
         """
         State: p_set -> g_set
 
-        :raises: :class:`~common.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.StateError`
         """
         self._set_g(value)
 
@@ -91,19 +93,19 @@ class DHCrypto(CryptoModule):
 
         State: p_set | initialized -> N/A
 
-        :raises: :class:`~common.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.CryptoError`
         """
         if self._sent_a:
-            raise ProtocolError("A has already been sent")
+            raise StateError("A has already been sent")
         if self.state == 'g_set' or self.state == 'initialized':
             self._sent_a = True
             return pow(self._g, self.private, self.p)
         else:
-            raise CryptoError('Crypto state is incorrect')
+            raise StateError('Crypto state is incorrect')
 
     @property
     def B(self):
-        raise NotImplementedError('This shdould never be read')
+        raise NotImplementedError('This should never be read')
 
     @B.setter
     def B(self, value):
@@ -112,13 +114,13 @@ class DHCrypto(CryptoModule):
 
         State: g_set -> initialized
 
-        :raises: :class:`~common.exceptions.CryptoError`
+        :raises: :class:`~crypto.exceptions.CryptoError`
         """
         if self.state == 'g_set':
             self.state = 'initialized'
             self.key = pow(value, self.private, self.p)
         else:
-            raise CryptoError('Crypto state is incorrect')
+            raise StateError('Crypto state is incorrect')
 
     @property
     def is_inited(self):

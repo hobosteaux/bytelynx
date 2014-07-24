@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.ciphers import (
 )
 
 from .cryptobase import CryptoModule
-from common import exceptions
+from .exceptions import KeySizeError
 
 #: 96 bit IV
 IV_SIZE = 12
@@ -36,7 +36,7 @@ class AESCrypto(CryptoModule):
             self.key = self.random_bytes(KEY_SIZE)
         else:
             if len(key) != KEY_SIZE:
-                raise exceptions.KeySizeError()
+                raise KeySizeError()
             self.key = key
         self.state = 'initialized'
 
@@ -55,6 +55,7 @@ class AESCrypto(CryptoModule):
         iv = self.iv
         self.iv = (int.from_bytes(iv, 'big') + 1).to_bytes(len(iv), 'big')
 
+        # TODO: Do we have to make the encryptor every time?
         # Make the encryptor
         encryptor = Cipher(algorithms.AES(self.key),
                            modes.GCM(iv),
