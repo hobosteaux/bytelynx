@@ -22,19 +22,18 @@ class Kademlia():
         Database handle :class:`common.dbinterface`
     """
 
-    def __init__(self, net, own_contact, dir_, contact_table):
+    def __init__(self, net, own_contact, dir_, K, B, A):
         self.db_conn = dbinterface(dir_)
         self.net = net
 
-        self.shortlists = Shortlists(own_contact.hash_)
+        self.shortlists = Shortlists(own_contact.hash_, K, A)
         self.shortlists.on_search += self.send_search
         self.shortlists.on_full_or_found += self.end_search
 
-        self.buckets = Buckets(own_contact.hash)
+        self.buckets = Buckets(own_contact.hash, K, B)
         self.buckets.on_added += self.db_conn.add_contact
         self.buckets.on_removed += self.db_conn.rm_contact
-        db_contacts = self.db_conn.contacts() + [own_contact]
-        self.net.seed_contacts(db_contacts)
+        db_contacts = self.net.update_contacts(self.db_conn.contacts())
 
         all_contacts = db_contacts + [own_contact]
         self.buckets.seed(all_contacts)
@@ -67,9 +66,8 @@ class Kademlia():
         self.net.send_data(contact, 'dht.response', retData)
 
     def on_find_node_response(self, contact, data):
-        contacts = data['nodes']
-        # TODO: can we just 'make' contacts without the contacttable?
-        # Should the shortlist translate if they are 'virtual'?
+        # Translate to 'real' contacts first
+        contacts = self.net.update_contacts(data['nodes'])
         self.shortlists.add_response(data['hash'],
                                      contact.address,
                                      contacts)

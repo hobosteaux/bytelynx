@@ -2,9 +2,9 @@
 import os
 import base64
 
+import state
 from ui import Menu, MenuOption
 from common import Hash, Address, Contact
-import state
 
 
 def print_status():
@@ -47,8 +47,9 @@ def search_contact():
     s = state.get()
     s.kademlia.init_search(hash_)
 
+
+# TODO: cmd arg for config path
 if __name__ == '__main__':
-    state.get()
 
     main_menu = Menu([
         MenuOption('Client Status', print_status),

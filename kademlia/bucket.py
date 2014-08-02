@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from common import Event, List as list
-from .constants import K, B
 
 
 class Bucket:
@@ -20,7 +19,8 @@ class Bucket:
         Event(:class:`common.Event`)
     """
 
-    def __init__(self):
+    def __init__(self, K):
+        self.K = K
         self.contacts = list()
         self.waitlist = list()
         self.on_added = Event()
@@ -35,12 +35,13 @@ class Bucket:
         :param report: Pop the :func:`~common.Bucket.on_added` event or not.
         """
         if (contact not in self.contacts):
-            if (len(self.contacts) <= K):
+            if (len(self.contacts) <= self.K):
                 self.contacts.append(contact)
                 contact.on_death += self.contact_death
                 if (report):
                     self.on_added(contact)
-            elif (len(self.waitlist) <= K) and (contact not in self.waitlist):
+            elif ((len(self.waitlist) <= self.K)
+                    and (contact not in self.waitlist)):
                 self.waitlist.append(contact)
                 contact.on_death += self.waitlist_death
 
@@ -100,12 +101,14 @@ class Buckets():
         Event(:class:`~common.Client`)
     """
 
-    def __init__(self, own_hash):
+    def __init__(self, own_hash, K, B):
+        self.K = K
+        self.B = B
         self.own_hash = own_hash
         self._last_check = datetime.now()
         self.on_added = Event()
         self.on_removed = Event()
-        self._buckets = [Bucket() for i in range(B+1)]
+        self._buckets = [Bucket() for i in range(self.B + 1)]
         for bucket in self._buckets:
             bucket.on_added += self.on_added
             bucket.on_removed += self.on_removed
@@ -151,7 +154,7 @@ class Buckets():
                     self._buckets[significant_bit].waitlist)\
                 .first(lambda x: x.hash == hash)
 
-    def get_closest(self, hash, count=K):
+    def get_closest(self, hash, count=None):
         """
         Gets the closest n contacts to a hash.
 
@@ -160,6 +163,8 @@ class Buckets():
         :param count: Number of contacts to return.
         :type count: int.
         """
+        if count is None:
+            count = self.K
         targethash = (self.own_hash ^ hash)
         significant_bit = targethash.significant_bit()
         contacts = list(self._buckets[significant_bit].contacts)
@@ -171,14 +176,14 @@ class Buckets():
 
         # Sorted Indices (for prox to the contact).
         # Ignore the one that is its own bucket to avoid any recursion.
-        si = sorted([x for x in range(1, B)],
+        si = sorted([x for x in range(1, self.B)],
                     key=lambda x: abs(x - significant_bit))[1:]
 
         # Yeah, yeah, we are ignoring the farthest away contact.
         for dindex in range(0, len(si) // 2):
             contacts += self._buckets[si[dindex * 2]].contacts
             contacts += self._buckets[si[(dindex * 2) + 1]].contacts
-            if (len(contacts) >= B):
+            if (len(contacts) >= self.B):
                 return sorted(contacts, key=lambda x:
                               targethash.AbsDiff(self.own_hash ^ x.hash))[:20]
         return contacts

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 from collections import namedtuple
 
-from .constants import K, A
 from common import Contact, Address, Hash, Event
 from common import List as list
 
@@ -52,13 +51,14 @@ class Shortlist():
         Fired when all closer contacts are exausted or the contact is found.
     """
 
-    def __init__(self, own_hash, target_hash, initialContacts):
+    def __init__(self, own_hash, target_hash, initialContacts, K):
         """
         :param target_hash: The :hash that this shortlist is seaching for.
         :type target_hash: :class:`common.Hash`
         :param initialContacts: Contacts to start the shorlist with.
         :type initialContacts: [:class:`common.Contact`]
         """
+        self.K = K
         self.search_space = list(SearchContact(False, x)
                                  for x in initialContacts)
         self.own_hash = own_hash
@@ -119,10 +119,10 @@ class Shortlist():
         # Check that the hash does not already exist.
         if not (self.search_space.Any(lambda x: x.hash_ == contact.hash_)):
             # if < K contacts, add to the list.
-            if (len(self.search_space) < K):
+            if (len(self.search_space) < self.K):
                 self.search_space.append([False, contact])
             # if == K contacts, and < K contacted.
-            elif (self.searched < K):
+            elif (self.searched < self.K):
                 # Set the max to the min so it must increment.
                 max = self.find_min()
                 if (contact.hash_ ^ self.target_hash <
@@ -140,7 +140,7 @@ class Shortlist():
         Also marks as contacted.
         """
         # We are below the count and have at least one useable contact still.
-        if ((self.searched <= K) and
+        if ((self.searched <= self.K) and
                 (self.search_space.any(lambda x: not x.contact))):
             item = self.find_min()
             item.contacted = True
@@ -160,7 +160,7 @@ class Shortlist():
         searchLambda = lambda x: not x.contacted
         # Find first uncontacted contact
         if (uncontacted):
-            if (self.searched > K):
+            if (self.searched > self.K):
                 self.on_full_or_found(self.target_hash, self.closest)
                 return None
         else:
@@ -189,7 +189,7 @@ class Shortlist():
         searchLambda = lambda x: not x.contacted
         # Find first uncontacted contact
         if (uncontacted):
-            if (self.searched > K):
+            if (self.searched > self.K):
                 return None
         else:
             searchLambda = None
@@ -212,7 +212,7 @@ class Shortlist():
                                              self.closest,
                                              len(self.in_progress),
                                              self.searched,
-                                             K)
+                                             self.K)
 
 from threading import Thread
 from datetime import datetime
@@ -235,7 +235,9 @@ class Shortlists():
         Returns either the contact or the closest one found.
     """
 
-    def __init__(self, own_hash):
+    def __init__(self, own_hash, K, A):
+        self.K = K
+        self.A = A
         self._own_hash = own_hash
         self._shortlists = {}  # {hash : shortlist}
         self._task_queue = Queue()
@@ -301,7 +303,7 @@ class Shortlists():
             if (len(alive) != len(shortlist.in_progress)):
                 shortlist.in_progress = alive
             # Add any needed more requests to reach the parallel param A.
-            while (len(shortlist.in_progress) < A):
+            while (len(shortlist.in_progress) < self.A):
                 next_min = shortlist.get_next()
                 # We have no more useable responses.
                 print('Next Min:', next_min)

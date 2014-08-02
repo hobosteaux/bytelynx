@@ -1,10 +1,14 @@
 import os
+from os import path
+import tempfile
 import struct
 
-from common import Contact, Address, Hash
+from common import Contact, Address, Hash, Config
 from net import Stack
 import net.ipfinder
 from kademlia import Kademlia
+from crypto.rsa import KeyPair
+
 
 STATE = None
 
@@ -30,35 +34,54 @@ class _State():
         Where all atrifacts from this instance are kept
     """
 
-    # TODO: Make these count
-    USE_RAND_PORT = True
-    USE_RAND_HASH = True
-    DEFHASH = hash(b'12345678901234567890')
-    DEFPORT = 8906
-    DEFBIT = 320
-
     def __init__(self):
-        self.bitsize = self.DEFBIT
+        # TODO: Make this w/o testing
+        self.config = self.get_testing_config()
+
+        self.dir = self.config['general']['config_dir']
+        self.bitsize = self.config['kademlia']['keysize']
+
+        # Get the cert and the hash for it
+        keyblob = open(self.config['kademlia']['keyfile'], 'r').read()
+        self.keypair = KeyPair(private=keyblob)
 
         # TODO: Load pub / priv, base hash off of this.
 
-        print("Initing globals")
-        hash_ = Hash(os.urandom(self.bitsize // 8))
-        # Set up dir first for artifacts
-        self.dir = 'tmp/' + hash_.base64[:10] + '/'
-        os.makedirs(self.dir)
-
         # TODO: load this from config
-        self.dh_group = 721283716213
+        self.dh_group = self.config['kademlia']['group']
 
         # Set up the networking core
-        port = self.new_port()
+        if self.config['net']['randomize_port']:
+            port = self.new_port()
+        else:
+            port = self.config['net']['port']
 
         addr = Address(net.ipfinder.check_in(), port)
         self.contact = Contact(addr, hash_)
         self.net = Stack(port, self.dh_group)
-        self.kademlia = Kademlia(self.net, self.contact,
-                                 self.dir)
+        self.kademlia = Kademlia(self.net, self.contact, self.dir,
+                                 self.config['kademlia']['bucket_size'],
+                                 self.bitsize,
+                                 self.config['kademlia']['paralellism'])
+
+    def get_testing_config(self):
+        os.mkdirs('tmp')
+        config_dir = tempfile.mkdtemp(dir='tmp')
+        config_file = path.join(config_dir, 'config.json')
+        config = Config(config_file)
+        config['general']['config_dir'] = config_dir
+        config['kademlia']['keyfile'] = path.join(config_dir, 'key.pem')
+        self.gen_testing_key(config['kademlia']['keyfile'])
+
+    def gen_testing_key(privloc, bits=512):
+        # TODO: push this into the crypto area
+        # Also,use cryptography when 0.6 comes out
+        # Putting imports in here so they are destroyed later
+        from Crypto.PublicKey import RSA
+        from binascii import b2a_base64
+        priv = RSA.generate(bits)
+        open(privloc, "wt").write(
+            str(b2a_base64(priv.exportKey('PEM')), 'UTF-8'))
 
     def new_port(self):
         """
