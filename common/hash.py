@@ -1,6 +1,22 @@
 import base64
 
 
+def hash_from_pub(pubkey, bitsize):
+    """
+    Constucts a hash from a public key.
+
+    :param pubkey: The public key to hash.
+    :type pubkey: bytes
+    :param bitsize: The amount of bits to hash with.
+    :type bitsize: int.
+    """
+    # TODO: This should really be pushed into the crypto layer.
+    # It would fit well as a property on pub / priv key objs
+    # NastyImport
+    from crypto import sha_hash
+    return Hash(sha_hash(pubkey, bitsize))
+
+
 class Hash():
     """
     Container for a hash.

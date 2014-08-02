@@ -1,10 +1,9 @@
 #!/usr/bin/python3
 
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat import primitives
-from primitives import hashes
-from primitives.asymmetric import rsa, padding
-from primitives.serialization import load_pem_traditional_openssl_private_key
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.serialization import load_pem_traditional_openssl_private_key
 
 from .cryptobase import CryptoModule
 from .exceptions import UninitializedError
@@ -22,14 +21,14 @@ class PrivateKey():
 
     def __init__(self, key):
         try:
+            # Keys are based off of an ABC, so classes change
             if key.__getattribute__('decrypt'):
                 self.value = key
         except AttributeError:
             if type(key) is str:
                 self.value = self.load(key)
             else:
-                # TODO: Make this a better exception
-                raise Exception
+                raise TypeError('Key is not a valid object')
 
     def load(self, blob):
         return load_pem_traditional_openssl_private_key(
@@ -54,8 +53,7 @@ class PublicKey():
             if type(key) is str:
                 self.value = self.load(key)
             else:
-                # TODO: Make this a better exception
-                raise Exception
+                raise TypeError('Key is not a valid object')
 
     def load(self, blob):
         # TODO: This method
@@ -71,7 +69,7 @@ class PublicKey():
 
 class KeyPair():
 
-    def __init__(self, private=None, public=None):
+    def __init__(self, *, private=None, public=None):
         """
         Both private and public can be one of the following
         ::
@@ -82,7 +80,6 @@ class KeyPair():
         """
         if private is None and public is None:
             self._private = gen_private()
-            self._public = self._private.public_key()
         else:
             if type(private) is PrivateKey:
                 self._private = private
@@ -92,6 +89,9 @@ class KeyPair():
                 self._public = public
             else:
                 self._public = PublicKey(public)
+        # Set public to private's public
+        if public is None:
+            self._public = self._private.public_key()
 
     @property
     def private(self):

@@ -22,22 +22,36 @@ class ContactTable():
         """
         self._dh_p = dh_group
         self._contacts_by_addr = {}
+        self._contacts_by_hash = {}
         self._friends = {}
         self._last_check = datetime.now()
 
-    def seed(self, contacts):
+    def update(self, contacts):
         """
-        Puts initial contacts from the sqlite db into the table.
-        These are all 'real', so there is no harm, even if they are dead.
+        Does a mass translate of contacts made elsewhere.
+        If they already exist, this will return the 'real' versions.
         """
+        rlist = []
         for contact in contacts:
-            contact.channels['bytelynx'].crypto.p = self._dh_p
-            contact.on_death += self.clean_contact
-            self._contacts[contact.address.tuple] = contact
-            if contact.needs_hash:
-                contact.on_hash_set += self.on_contact_hash
-            else:
-                self._contacts_by_hash[contact.hash.value] = contact
+            try:
+                rlist.append(self._contacts_by_hash[contact.hash.value])
+            # If the hash has not been seen yet
+            # TODO: this could error out with an AttributeError (no hash)
+            except KeyError:
+                try:
+                    rcontact = self._contacts_by_addr[contact.address.tuple]
+                    rlist.append(rcontact)
+                    if rcontact.needs_hash and not contact.needs_hash:
+                        rcontact.hash = contact.hash
+                except KeyError:
+                    contact.channels['bytelynx'].crypto.p = self._dh_p
+                    contact.on_hash += self.on_contact_hash
+                    contact.on_death += self.clean_contact
+                    self._contacts_by_addr[contact.address.tuple] = contact
+                    if not contact.needs_hash:
+                        self._contacts_by_hash[contact.hash.value] = contact
+                    rlist.append(contact)
+        return rlist
 
     def add_friend(self, friend):
         """
@@ -45,9 +59,13 @@ class ContactTable():
         If this friend is seen, it will be associated.
 
         :param friend: The friend to add
-        :type friend: :class:`~common.friend`
+        :type friend: :class:`~common.friend` or list(:class:`~common.friend`)
         """
-        self._friends[friend.hash.value] = friend
+        try:
+            self._friends[friend.hash.value] = friend
+        # If it is a friends list
+        except AttributeError:
+            self._friends.update({f.hash.value: f for f in friend})
 
     def on_contact_hash(self, contact):
         """
@@ -55,7 +73,7 @@ class ContactTable():
         This puts it into the _contacts_by_hash dict,
         which allows the virtual contacts to be translated
         """
-        contact.on_contact_hash -= self.on_contact_hash
+        contact.on_hash -= self.on_contact_hash
         self._contacts_by_hash[contact.hash.value] = contact
 
     def translate(self, address):
@@ -75,17 +93,17 @@ class ContactTable():
             contact = self._contacts_by_addr[address.tuple]
             # Set the last time seen (to now)
             contact.last_seen = datetime.now()
-            # It can only have a hash if it exists
-            if not contact.needs_hash and contact.hash is not None:
+            # Try associating the contact with a friend
+            if not contact.needs_hash and not contact.has_friend:
                 try:
-                    self._friends[contact.hash.value].assiciate(contact)
+                    self._friends[contact.hash.value].associate(contact)
                 except KeyError:
                     pass
         # Errors if the contact does not exist
         except KeyError:
             contact = Contact(address, virtual=False)
             contact.channels['bytelynx'].crypto.p = self._dh_p
-            contact.on_hash_set += self.on_contact_hash
+            contact.on_hash += self.on_contact_hash
             contact.on_death += self.clean_contact
             self._contacts[address.tuple] = contact
 

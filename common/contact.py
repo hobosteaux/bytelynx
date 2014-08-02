@@ -25,9 +25,12 @@ class Contact():
 
         All currently established channels for this contact.
         {str.: :class:`common.Channel`}
-    .. attribute:: is_friend
+    .. attribute:: has_friend
 
         If this contact is a friend.
+    .. attribute:: on_hash
+
+        Event thrown when the hash is found.
     .. attribute:: on_death
 
         Event thrown when the contact has died.
@@ -45,12 +48,13 @@ class Contact():
     def __init__(self, addr, hash=None):
         self.needs_hash = hash is None
         self.address = addr
-        self.hash = hash
+        self.set_hash(hash)
         self.last_seen = datetime.now()
         self.pings = list()
+        self.on_hash = Event()
         self.on_death = Event()
         self.channels = {}
-        self.is_friend = False
+        self.has_friend = False
 
         self.create_channel('bytelynx')
 
@@ -74,10 +78,10 @@ class Contact():
 
         :returns: If the hash was set
         """
-        if self.needs_hash:
-            # TODO: make this proc an event
+        if self.needs_hash and hash_ is not None:
             self.hash = hash_
             self.needs_hash = False
+            self.on_hash(self)
             return True
         return False
 
@@ -151,6 +155,8 @@ class Friend():
         # NastyImport
         import state
         bitsize = state.get().bitsize
+        # TODO: push this into the publickey object
+        # REQ: cryptography 0.6
         self.hash = hash_from_pub(pubkey, bitsize)
 
         self.contact = None
@@ -159,4 +165,5 @@ class Friend():
         self.contact = contact
         chan = contact.create_channel('rsa-ex')
         # TODO
-        # set child RSA crypto
+        # set child RSA crypo - get privkey somehow
+        chan.seed(own_crypto, self.pubkey)
