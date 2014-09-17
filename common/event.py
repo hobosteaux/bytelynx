@@ -33,7 +33,9 @@ class Event:
         return self
 
     def fire(self, *args, **kargs):
-        for handler in self.handlers:
+        # Copy the set
+        # Prevents iteration errors if an event removes itself
+        for handler in self.handlers.copy():
             handler(*args, **kargs)
 
     def getHandlerCount(self):
