@@ -7,3 +7,4 @@ from .sentpacket import SentPacket as SentPacket
 from .sqlite import dbinterface as dbinterface
 from .packetwatcher import PacketWatcher
 from .config import Config as Config
+from .property import Property as Property

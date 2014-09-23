@@ -1,7 +1,11 @@
+from threading import RLock
+
 from .event import Event
 from .list import List
+from .flattenable import Flattenable
 
-class Property():
+
+class Property(Flattenable):
 
     def __init__(self, name, value):
         self.name = name
@@ -25,6 +29,39 @@ class Property():
             self._on_changed()
 
 
+class AtomicProperty(Property):
+
+    def __init__(self, name, value):
+        self._l = RLock()
+        super().__init__(name, value)
+
+    @property
+    def value(self):
+        with self._l:
+            return self._value
+
+    @value.setter
+    def value(self, val):
+        with self._l:
+            if self._value != val:
+                self._value = val
+                self._on_changed()
+
+
+class StrAccumProperty(AtomicProperty):
+
+    def __iadd__(self, value):
+        with self._l:
+            self.value = self._value + value
+            return self
+
+    def flatten(self):
+        with self._l:
+            d = {self.name: self.value}
+            self._value = ''
+        return d
+
+
 class ListProperty(Property):
 
     def append(self, value):
@@ -41,6 +78,7 @@ class ListProperty(Property):
     @property
     def value(self):
         return List(self._value)
+
 
 class DictProperty(Property):
 
