@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from common import List as list
 from common import Contact
+from common import Property
 
 #: Time (in minutes) before a contact is removed.
 EXPIRE_TIME = 10
@@ -9,22 +10,46 @@ EXPIRE_TIME = 10
 SWEEP_INTERVAL = 1.5
 
 
-class ContactTable():
+class ContactTable(Property):
     """
     Class that keeps track of all recently seen contact.
     Also provides translation from :class:`~common.Address`
     to :class:`~common.Contact`
     """
 
+    _flatten_dicts = ['_contacts_by_addr', '_friends']
+
     def __init__(self, dh_group):
         """
         :param dh_group: The 'p' parameter for the group.
         """
+        # Super weird init
+        # Using self as the value so the serialization
+        # is called on this base object
+        super().__init__('contact_table', self)
         self._dh_p = dh_group
         self._contacts_by_addr = {}
         self._contacts_by_hash = {}
         self._friends = {}
         self._last_check = datetime.now()
+
+    def __str__(self):
+        """
+        This must be overloaded since self._value = self
+        Otherwise, Property.__str__() will infinitely recurse.
+        """
+        return ("ADDR: %s\nHASH: %s\nFRIENDS: %s" %
+                (self._contacts_by_addr.values(),
+                 self._contacts_by_hash.values(),
+                 self._friends))
+
+    @property
+    def net_contacts(self):
+        return [self._contacts_by_addr.values()]
+
+    @property
+    def friends(self):
+        return [self._friends.values()]
 
     def update(self, contacts):
         """
@@ -39,17 +64,19 @@ class ContactTable():
             # TODO: this could error out with an AttributeError (no hash)
             except KeyError:
                 try:
-                    rcontact = self._contacts_by_addr[contact.address.tuple]
+                    rcontact = self._contacts_by_addr[str(contact.address)]
                     rlist.append(rcontact)
                     if rcontact.needs_hash and not contact.needs_hash:
                         rcontact.hash = contact.hash
+                # Happens if the contact is not made
                 except KeyError:
                     contact.channels['bytelynx'].crypto.p = self._dh_p
                     contact.on_hash += self.on_contact_hash
                     contact.on_death += self.clean_contact
-                    self._contacts_by_addr[contact.address.tuple] = contact
+                    self._contacts_by_addr[str(contact.address)] = contact
                     if not contact.needs_hash:
                         self._contacts_by_hash[contact.hash.value] = contact
+                    self._on_changed()
                     rlist.append(contact)
         return rlist
 
@@ -66,6 +93,7 @@ class ContactTable():
         # If it is a friends list
         except AttributeError:
             self._friends.update({f.hash.value: f for f in friend})
+        self._on_changed()
 
     def on_contact_hash(self, contact):
         """
@@ -75,6 +103,7 @@ class ContactTable():
         """
         contact.on_hash -= self.on_contact_hash
         self._contacts_by_hash[contact.hash.value] = contact
+        self._on_changed()
 
     def translate(self, address):
         """
@@ -90,7 +119,7 @@ class ContactTable():
 
         # Get an existing contact
         try:
-            contact = self._contacts_by_addr[address.tuple]
+            contact = self._contacts_by_addr[str(address)]
             # Set the last time seen (to now)
             contact.last_seen = datetime.now()
             # Try associating the contact with a friend
@@ -101,18 +130,20 @@ class ContactTable():
                     pass
         # Errors if the contact does not exist
         except KeyError:
-            contact = Contact(address, virtual=False)
+            contact = Contact(address)
             contact.channels['bytelynx'].crypto.p = self._dh_p
             contact.on_hash += self.on_contact_hash
             contact.on_death += self.clean_contact
-            self._contacts[address.tuple] = contact
+            self._contacts_by_addr[str(address)] = contact
+            self._on_changed()
 
         # Check for a sweep
+        # TODO: Do we need to sweep contacts_by_hash?
         if datetime.now() - self._last_check > \
                 timedelta(minutes=SWEEP_INTERVAL):
             self._last_check = datetime.now()
             del_time = datetime.now() - timedelta(minutes=EXPIRE_TIME)
-            del_list = list(self._contacts.values())\
+            del_list = list(self._contacts_by_addr.values())\
                 .where(lambda x: x.last_seen < del_time)
 
             for item in del_list:
@@ -129,6 +160,7 @@ class ContactTable():
         """
         contact.on_death -= self.clean_contact
         try:
-            del(self._clients[contact.address.tuple])
+            del(self._contacts_by_addr[str(contact.address)])
+            self._on_changed()
         except KeyError:
             pass

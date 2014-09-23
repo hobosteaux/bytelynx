@@ -1,4 +1,5 @@
 import base64
+from .property import Property
 
 
 def hash_from_pub(pubkey, bitsize):
@@ -17,7 +18,7 @@ def hash_from_pub(pubkey, bitsize):
     return Hash(sha_hash(pubkey, bitsize))
 
 
-class Hash():
+class Hash(Property):
     """
     Container for a hash.
     Lots of overloaded operators.
@@ -28,31 +29,39 @@ class Hash():
     """
 
     def __init__(self, value):
-        self.value = value
+        super().__init__('hash', value)
 
     def __len__(self, other):
-        return len(self.value)
+        return len(self._value)
 
     def __str__(self):
-        return '%s:%s' % ('h', self.value)
+        return '%s:%s' % ('h', self._value)
 
     def __hash__(self):
-        return hash(self.value)
+        # TODO: Should this just return self._value?
+        return hash(self._value)
 
     def __lt__(self, other):
-        return self.value < other.value
+        return self._value < other.value
 
     def __gt__(self, other):
-        return self.value > other.value
+        return self._value > other.value
 
     def __eq__(self, other):
         try:
-            return self.value == other.value
+            return self._value == other.value
         except AttributeError:
             return False
 
     def __ne__(self, other):
-        return self.value != other.value
+        return self._value != other.value
+
+    def flatten(self):
+        """
+        For use with the :class:`~common.flattenable.Flattenable` interface
+        :returns: A simple b64 of the hash.
+        """
+        return self.base64
 
     def abs_diff(self, other):
         """
@@ -63,28 +72,28 @@ class Hash():
         return self - other
 
     def __sub__(self, other):
-        if (len(self.value) != len(other.value)):
+        if (len(self._value) != len(other.value)):
             raise ValueError("Hashes are not of the same length.")
-        i = (int.from_bytes(self.value, 'little') -
+        i = (int.from_bytes(self._value, 'little') -
              int.from_bytes(other.value, 'little'))
-        return Hash(i.to_bytes(len(self.value), 'little'))
+        return Hash(i.to_bytes(len(self._value), 'little'))
 
     def __xor__(self, other):
-        if (len(self.value) != len(other.value)):
+        if (len(self._value) != len(other.value)):
             raise ValueError("Hashes are not of the same length.")
-        i = (int.from_bytes(self.value, 'little') ^
+        i = (int.from_bytes(self._value, 'little') ^
              int.from_bytes(other.value, 'little'))
-        return Hash(i.to_bytes(len(self.value), 'little'))
+        return Hash(i.to_bytes(len(self._value), 'little'))
 
     def significant_bit(self):
         """
         :returns: The most significat bit place.
         """
-        for i in range(0, len(self.value)):
+        for i in range(0, len(self._value)):
             b = 128
             for j in range(0, 8):
-                if (self.value[i] & b != 0):
-                    return ((len(self.value) * 8) - (i * 8) - j)
+                if (self._value[i] & b != 0):
+                    return ((len(self._value) * 8) - (i * 8) - j)
                 b //= 2
         return 0
 
@@ -94,10 +103,10 @@ class Hash():
         :returns: String of 0's and 1's.
         """
         str_data = ''
-        for i in range(0, len(self.value)):
+        for i in range(0, len(self._value)):
             b = 128
             for j in range(0, 8):
-                if (self.value[i] & b != 0):
+                if (self._value[i] & b != 0):
                     str_data += '1'
                 else:
                     str_data += '0'
@@ -109,4 +118,4 @@ class Hash():
         """
         :returns: B64 encoded string.
         """
-        return str(base64.b64encode(self.value), 'UTF-8')
+        return str(base64.b64encode(self._value), 'UTF-8')

@@ -5,9 +5,10 @@ from .list import List as list
 from .channel import Channel
 from .exceptions import ProtocolError
 from .hash import hash_from_pub
+from .property import Property
 
 
-class Contact():
+class Contact(Property):
     """
     .. attribute:: pings
 
@@ -45,21 +46,31 @@ class Contact():
     #: If a hash has been scraped from the contact yet
     needs_hash = True
 
+    _flatten_attrs = ['ping',
+                      'liveliness',
+                      'needs_hash']
+    _flatten_funcs = ['hash',
+                      'address']
+
     def __init__(self, addr, hash=None):
-        self.needs_hash = hash is None
         self.address = addr
-        self.set_hash(hash)
         self.last_seen = datetime.now()
         self.pings = list()
-        self.on_hash = Event()
-        self.on_death = Event()
         self.channels = {}
         self.has_friend = False
+        self.on_death = Event()
+        self.on_hash = Event()
+        self.needs_hash = True
+        self.set_hash(hash)
 
         self.create_channel('bytelynx')
 
     def __str__(self):
-        return '%s' % (self.address)
+        try:
+            return '%s : %s' % (self.address, self.hash.base64)
+        # If the hash is not set
+        except AttributeError:
+            return '%s : None' % (self.address)
 
     def __repr__(self):
         return '%s' % (self.address)
@@ -78,11 +89,14 @@ class Contact():
 
         :returns: If the hash was set
         """
-        if self.needs_hash and hash_ is not None:
-            self.hash = hash_
-            self.needs_hash = False
-            self.on_hash(self)
-            return True
+        if self.needs_hash:
+            if hash_ is not None:
+                self.hash = hash_
+                self.needs_hash = False
+                self.on_hash(self)
+                return True
+            else:
+                self.hash = None
         return False
 
     def create_channel(self, mode):
