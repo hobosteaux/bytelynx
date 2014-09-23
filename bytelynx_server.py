@@ -50,6 +50,7 @@ def search_contact():
 
 # TODO: cmd arg for config path
 if __name__ == '__main__':
+    state.get()
 
     main_menu = Menu([
         MenuOption('Client Status', print_status),
