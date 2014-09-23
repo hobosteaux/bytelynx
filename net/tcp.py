@@ -4,6 +4,8 @@ import json
 
 from common import Event, Address
 
+# TODO: allow datetimes across the wire
+
 
 class Server():
 
@@ -16,6 +18,7 @@ class Server():
         self._sock.listen(conn_limit)
         self._clients = {}
         self.on_data = Event()
+        self.on_cleanup = Event()
         if blocking:
             self.listen()
         else:
@@ -26,31 +29,33 @@ class Server():
     def listen(self):
         while True:
             clientsock, addr = self._sock.accept()
-            self._clients[addr] = clientsock
+            address = Address(addr[0], addr[1])
+            self._clients[str(address)] = clientsock
             print('Connected from:', addr)
             listenThread = threading.Thread(target=self.handler,
-                                            args=(clientsock, addr[0]))
+                                            args=(clientsock, address))
             listenThread.start()
 
-    def handler(self, clientsock, addr):
+    def handler(self, clientsock, address):
         buf = 1024
         while True:
             try:
                 data = clientsock.recv(buf)
                 if not data:
-                    print("Connection Broken", addr)
+                    print("Connection Broken", address)
                     break
                 data = json.loads(data.decode('UTF-8'))
-                print("%s <- %s" % (addr, data))
-                self.on_data(Address(addr[0], addr[1]), data)
+                print("%s -> %s" % (address, data))
+                self.on_data(address, data)
             except Exception as e:
                 print(e)
         clientsock.close()
+        self.on_cleanup(address)
 
     def send_data(self, address, data):
-        data = json.dumps(bytes(data, 'UTF-8'))
-        print("%s -> %s" % (address, data))
-        self._clients[address.tuple].send(data)
+        data = json.dumps(data)
+        print("%s <- %s" % (address, data))
+        self._clients[str(address)].send(bytes(data, 'UTF-8'))
 
 
 class Client():
@@ -64,8 +69,8 @@ class Client():
         self.on_data = Event()
 
     def send_data(self, data):
-        data = bytes(json.dumps(data), 'UTF-8')
         print("-> %s" % data)
+        data = bytes(json.dumps(data), 'UTF-8')
         self._sock.send(data)
 
     def handler(self):

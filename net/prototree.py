@@ -238,11 +238,11 @@ class Encrypted(Message):
 
     .. note:: Right now this MUST have submessages
     """
-    def __init__(self, mode, tags=[], submessages=None):
+    def __init__(self, mode, *, tags=[], submessages=None, is_pongable=False):
         pkt_id_tag = VarintTag(Tags.PKTID)
         super().__init__('', tags=([pkt_id_tag] + tags),
                          submessages=submessages,
-                         mode=mode)
+                         is_pongable=is_pongable, mode=mode)
 
     def encode(self, contact, dict_data, bytes_data):
         data = struct.pack(TYPE_SYMBOL, self.index)

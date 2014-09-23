@@ -1,5 +1,5 @@
 
-from common.exceptions import ProtocolError
+from crypto.exceptions import StateError
 from crypto.aesgcm import KEY_SIZE
 from crypto import SHAModes
 
@@ -56,7 +56,7 @@ def on_dh_B(contact, data):
         state.get().net.send_data(contact, 'dh.mix', {'dh_B': dh_crypto.A})
     # Happens if we have already sent an A
     # Send a DHT hello
-    except ProtocolError:
+    except StateError:
         state.get().net.send_data(contact, 'dht.ping', {})
 
 
@@ -72,6 +72,7 @@ def on_pubkey_response(contact, data):
     Handler for when a public key is received from a contact.
     """
     # TODO: This function
+
 
 def on_rsa_exchange(contact, data):
     """

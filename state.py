@@ -2,9 +2,11 @@ import os
 from os import path
 import tempfile
 import struct
+import socket
 
 from common import Contact, Address, Hash, Config
 from net import Stack
+from ui.server import UIServer
 import net.ipfinder
 from kademlia import Kademlia
 from crypto.rsa import KeyPair
@@ -31,21 +33,24 @@ class _State():
         The group id that this node is a member of
     .. attribute:: dir
 
-        Where all atrifacts from this instance are kept
+        Where all artifacts from this instance are kept
     """
 
     def __init__(self):
+        print("INITING STATE")
         # TODO: Make this w/o testing
         self.config = self.get_testing_config()
 
         self.dir = self.config['general']['config_dir']
         self.bitsize = self.config['kademlia']['keysize']
 
+        # TODO: Re-enable cert loading
         # Get the cert and the hash for it
-        keyblob = open(self.config['kademlia']['keyfile'], 'r').read()
-        self.keypair = KeyPair(private=keyblob)
+        # keyblob = open(self.config['kademlia']['keyfile'], 'r').read()
+        # self.keypair = KeyPair(private=keyblob)
 
         # TODO: Load pub / priv, base hash off of this.
+        hash_ = Hash(os.urandom(20))
 
         # TODO: load this from config
         self.dh_group = self.config['kademlia']['group']
@@ -63,15 +68,27 @@ class _State():
                                  self.config['kademlia']['bucket_size'],
                                  self.bitsize,
                                  self.config['kademlia']['paralellism'])
+        try:
+            self.uiserver = UIServer(self.config['net']['ui_port'],
+                                     self.config['net']['max_ui_conns'])
+            # Bind all the properties
+            # This should probably be moved to a model somewhere
+            props = {'contact_table': 'net._contacts'}
+            for name, var_path in props.items():
+                self.uiserver.add_property(name, var_path, self)
+        except socket.error:
+            print("UI server port taken. Starting without UI")
 
     def get_testing_config(self):
-        os.mkdirs('tmp')
+        os.makedirs('tmp', exist_ok=True)
         config_dir = tempfile.mkdtemp(dir='tmp')
         config_file = path.join(config_dir, 'config.json')
         config = Config(config_file)
         config['general']['config_dir'] = config_dir
         config['kademlia']['keyfile'] = path.join(config_dir, 'key.pem')
-        self.gen_testing_key(config['kademlia']['keyfile'])
+        # TODO: Re-enable testing keys
+        # self.gen_testing_key(config['kademlia']['keyfile'])
+        return config
 
     def gen_testing_key(privloc, bits=512):
         # TODO: push this into the crypto area

@@ -108,7 +108,7 @@ class Buckets():
         self._last_check = datetime.now()
         self.on_added = Event()
         self.on_removed = Event()
-        self._buckets = [Bucket() for i in range(self.B + 1)]
+        self._buckets = [Bucket(K) for i in range(self.B + 1)]
         for bucket in self._buckets:
             bucket.on_added += self.on_added
             bucket.on_removed += self.on_removed

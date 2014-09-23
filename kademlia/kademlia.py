@@ -26,7 +26,7 @@ class Kademlia():
         self.db_conn = dbinterface(dir_)
         self.net = net
 
-        self.shortlists = Shortlists(own_contact.hash_, K, A)
+        self.shortlists = Shortlists(own_contact.hash, K, A)
         self.shortlists.on_search += self.send_search
         self.shortlists.on_full_or_found += self.end_search
 
