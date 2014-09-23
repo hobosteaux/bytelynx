@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import sqlite3
+from os import path
 
 from .contact import Contact, Friend
 from .address import Address
@@ -23,7 +24,7 @@ class dbinterface():
     """
 
     def __init__(self, state_dir):
-        self.conn = sqlite3.connect(state_dir + 'datastore.sqlite',
+        self.conn = sqlite3.connect(path.join(state_dir, 'datastore.sqlite'),
                                     check_same_thread=False)
         cur = self.conn.cursor()
         cur.executescript(INITSTATEMENT)
