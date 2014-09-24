@@ -129,10 +129,12 @@ class UIServer():
         self.send_data(subscriber, 'events', names)
 
     def subscribe_handler(self, subscriber, data):
-        print("Subscribing")
         for value in (x for x in data if x in self.properties):
-            subscriber.subscriptions.add(value)
-            print("%s ADDED %s" % (subscriber, value))
+            # Check only to look for a data update
+            if value not in subscriber.subscriptions:
+                subscriber.subscriptions.add(value)
+                self.send_data(subscriber, 'update',
+                               self.properties[value].flatten())
 
     def unsubscribe_handler(self, subscriber, data):
         for value in (x for x in data if x in self.properties):
