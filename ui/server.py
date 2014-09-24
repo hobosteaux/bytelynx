@@ -1,6 +1,6 @@
-from time import sleep
 from threading import Lock, Thread
 from functools import reduce
+from datetime import datetime, timedelta
 
 from net.tcp import Server
 
@@ -26,13 +26,14 @@ class UIServer():
         self._properties_lock = Lock()
         self._subscriber_lock = Lock()
         self._updated_properties = set()
+        # Update Vars
+        self._last_update = datetime.now()
+        self._updating = False
+        self._update_lock = Lock()
+        # Handlers
         self._handlers = {'get_events': self.get_events_handler,
                           'subscribe': self.subscribe_handler,
                           'unsubscribe': self.unsubscribe_handler}
-        # Get the party started
-        self._update_thread = Thread(target=self.update_thread)
-        self._update_thread.daemon = True
-        self._update_thread.start()
 
     def add_property(self, name, path, object_root):
         obj = object_root
@@ -49,8 +50,26 @@ class UIServer():
                    'values': data}
         self.server.send_data(sub.address, message)
 
-    def update_thread(self):
-        while True:
+    UPDATE_DELTA = timedelta(seconds=2)
+
+    def try_update(self):
+        """
+        Function that checks to see if an update needs to be started.
+        This is locked for multithreading,
+        and spawns another thread to do the update.
+        """
+        with self._update_lock:
+            if (datetime.now() - self.UPDATE_DELTA > self._last_update
+                    and not self._updating):
+                self._updating = True
+                self._last_update = datetime.now()
+                # Get the party started
+                t = Thread(target=self._update)
+                t.daemon = True
+                t.start()
+
+    def _update(self):
+        try:
             with self._properties_lock:
                 props = self._updated_properties
                 self._updated_properties = set()
@@ -76,7 +95,8 @@ class UIServer():
                         # Send data to the clients
                         if len(data) > 0:
                             self.send_data(sub, 'update', data)
-            sleep(1)
+        finally:
+            self._updating = False
 
     def on_property_update(self, name, value):
         """
@@ -85,10 +105,10 @@ class UIServer():
         The value is also of unknown type, not the json-compatible
         types needed.
         """
-        print("Waiting for property lock")
         with self._properties_lock:
             print("updating %s (%s)" % (name, value))
             self._updated_properties.add(name)
+        self.try_update()
 
     def get_subscriber(self, address):
         """
