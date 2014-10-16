@@ -6,6 +6,8 @@ from cryptography.hazmat.primitives.ciphers import (
 from .cryptobase import CryptoModule
 from .exceptions import KeySizeError
 
+# TODO: Get these items from config
+
 #: 96 bit IV
 IV_SIZE = 12
 #: 256 bit AES
@@ -49,7 +51,10 @@ class AESCrypto(CryptoModule):
             there is a small chance that the IVs would be the same.
             This would be **extremely** bad.
 
-        Return format: :attr:`IV_SIZE` + payload + :attr:`TAG_SIZE`
+        :param data: The data to encrypt
+        :type data: bytes
+        :returns: IV + payload + TAG
+        :rtype: bytes
         """
         # Grab && increment iv
         iv = self.iv
@@ -69,6 +74,19 @@ class AESCrypto(CryptoModule):
         return iv + ciphertext + encryptor.tag
 
     def decrypt(self, data):
+        """
+        Decrypts an AESGCM payload.
+
+        Relies on constants:
+            :attr:`~crypto.aesgcm.IV_SIZE`
+
+            :attr:`~crypto.aesgcm.TAG_SIZE`
+
+        :param data: The raw data to decrypt
+        :type data: bytes
+        :returns: Decrypted data
+        :rtype: bytes
+        """
         iv = data[:IV_SIZE]
         payload = data[IV_SIZE: -TAG_SIZE]
         tag = data[-TAG_SIZE:]

@@ -31,21 +31,20 @@ class Server():
             raw_data, address = self._sock.recvfrom(65536)
 
             # print('received '+ str(len(data)) +' bytes from '+ str(address))
-            # TODO: Replace error handler
-            #try:
-            address = Address(address[0], address[1])
-            self.on_data(address, raw_data)
+            try:
+                address = Address(address[0], address[1])
+                self.on_data(address, raw_data)
 
-            #except:
-            #    print("ERROR:", address, raw_data)
+            except:
+                print("ERROR:", address, raw_data)
 
     def send(self, address, raw_data):
         """
         Sends a encoded data to an address.
 
-        :param address: The destination address.
-        :type address:`~net.Address`
-        :param data: Raw data.
+        :param address: The destination address
+        :type address: :attr:`~net.Address`
+        :param data: Raw data
         :type tags: bytes
         """
         self._sock.sendto(raw_data, address.tuple)

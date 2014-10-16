@@ -22,6 +22,9 @@ class DHCrypto(CryptoModule):
 
     @property
     def private(self):
+        """
+        The local private key
+        """
         # TODO: Make this a dynamic size / etc
         if self._private is None:
             self._private = self.random_int(512)

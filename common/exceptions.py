@@ -7,5 +7,5 @@ class AbstractError(Exception):
 
 
 class ProtocolError(Exception):
-    """Exception thrown if decoding goes awry."""
+    """Exception thrown if decoding goes awry"""
     pass

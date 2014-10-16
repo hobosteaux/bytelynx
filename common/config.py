@@ -1,7 +1,8 @@
 
 import json
 
-
+# start-after
+#: The default config
 DEFAULT_CONF = {
     'general': {
         'config_dir': 'data'
@@ -20,11 +21,14 @@ DEFAULT_CONF = {
         'keyfile': 'data/key.pem'
     }
 }
+# end-before
 
 
 class Config():
     """
     General class to hold the config.
+
+    Masquerades as a dict.
     """
     # TODO: Make this handle multithreading / singleton
 

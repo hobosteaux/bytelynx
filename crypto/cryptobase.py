@@ -12,24 +12,50 @@ class CryptoModule():
 
     def encrypt(self, data):
         """
-        Takes raw bytes and returns encrypted raw bytes.
+        Interface to encrypt raw data
+
+        :param data: Data to encrypt
+        :type data: bytes
+        :returns: Encrypted data
+        :rtype: bytes
         """
         raise AbstractError()
 
     def decrypt(self, data):
         """
-        Takes encrypted raw bytes and returns raw bytes.
+        Interface to decrypt raw data
+
+        :param data: Data to decrypt
+        :type data: bytes
+        :returns: Decrypted data
+        :rtype: bytes
         """
         raise AbstractError()
 
     def random_int(self, byte_length):
         """
-        :returns: An int of the given byte length.
+        Gets a random integer
+
+        .. warning:: Uses os.urandom
+
+        :param byte_length: Bytes of randomness to use
+        :type byte_length: int.
+        :returns: A value of the given byte length.
+        :rtype: int.
         """
+        # TODO: Not use os.urandom?
         return int.from_bytes(os.urandom(byte_length), 'little')
 
     def random_bytes(self, byte_length):
         """
-        :returns: A bytes object of byte_length.
+        Gets random bytes
+
+        .. warning:: Uses os.urandom
+
+        :param byte_length: Bytes of randomness to use
+        :type byte_length: int.
+        :returns: Random bytes
+        :rtype: bytes
         """
+        # TODO: Not use os.urandom?
         return os.urandom(byte_length)

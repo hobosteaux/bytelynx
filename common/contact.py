@@ -88,6 +88,7 @@ class Contact(Property):
         Sets the contacts hash.
 
         :returns: If the hash was set
+        :rtype: bool.
         """
         if self.needs_hash:
             if hash_ is not None:
@@ -115,13 +116,14 @@ class Contact(Property):
         self.channels[mode] = c
         return c
 
+    # TODO: Turn this into an Enum
     class ping_modes():
         """
         Modes which the ping of a class can be modified.
         """
-        #: (old / 1.5) + (new / 3)
+        #: ping = (old / 1.5) + (new / 3)
         geometric = 'geometric'
-        #: new
+        #: ping = new
         absolute = 'absolute'
 
     def change_ping(self, ping, mode='geometric'):
@@ -129,6 +131,11 @@ class Contact(Property):
         Modifies the ping of this contact.
         Also sets liveliness, as this is only called when
         a successful pong is received.
+
+        :param ping: The ping, in ms.
+        :type ping: int.
+        :param mode: Mode to weight the ping
+        :type mode: str.
         """
         if mode == 'geometric':
             self.ping = (self.ping / 1.5) + (ping / 3)
@@ -140,7 +147,7 @@ class Contact(Property):
         """
         Degrades or improves liveliness by one packet value.
 
-        :param degrade: If liveliness should be decreased.
+        :param degrade: If liveliness should be decreased
         :type degrade: bool.
         """
         self.liveliness *= 0.8
@@ -176,6 +183,13 @@ class Friend():
         self.contact = None
 
     def associate(self, contact):
+        """
+        Associates a contact with this friend.
+        Initializes the RSA crypto.
+
+        :param contact: The contact to associate with
+        :type contact: :class:`~common.Contact`
+        """
         self.contact = contact
         chan = contact.create_channel('rsa-ex')
         # TODO

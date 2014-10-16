@@ -6,6 +6,20 @@ from .flattenable import Flattenable
 
 
 class Property(Flattenable):
+    """
+    An object that holds *one* value
+    and notifies any subscribers about changes.
+
+
+    #TODO: make this spawn a real answer
+    >>> p = Property('test', 0)
+    >>> h = lambda name, val: print("{0}: {1}".format(name, val))
+    >>> p.on_changed += h
+    >>> p.value = 1
+    >>>
+
+    Base class to all other properties.
+    """
 
     def __init__(self, name, value):
         self.name = name
@@ -20,6 +34,11 @@ class Property(Flattenable):
 
     @property
     def value(self):
+        """
+        The value of this property.
+
+        Will trigger on_changed if value is diff than current
+        """
         return self._value
 
     @value.setter
@@ -30,6 +49,9 @@ class Property(Flattenable):
 
 
 class AtomicProperty(Property):
+    """
+    A locking version of :class:`~common.property.Property`
+    """
 
     def __init__(self, name, value):
         self._l = RLock()
@@ -49,6 +71,23 @@ class AtomicProperty(Property):
 
 
 class StrAccumProperty(AtomicProperty):
+    """
+    
+    ::
+
+        bob = 1
+        sal = 3
+        print(bob + sal)
+
+
+    >>> p = StrAccumProperty('name')
+    >>>
+    >>>
+
+    """
+
+    def __init__(self, name, value=''):
+        super().__init__(name, value)
 
     def __iadd__(self, value):
         with self._l:

@@ -18,7 +18,7 @@ Tag Interface
 
 .. autoclass:: net.tag.Tag
 	:noindex:
-	:members: encoded, decoded, to_value, to_encoded
+	:members: encoded, value, to_encoded, to_value
 
 Creating a new tag
 ++++++++++++++++++

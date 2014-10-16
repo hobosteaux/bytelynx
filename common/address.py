@@ -3,21 +3,16 @@ from .property import Property
 
 class Address(Property):
     """
-    .. attribute:: ip
-
-        str. ip address
-    .. attribute:: port
-
-        int. port number
+    Container struct for an IPv4 address / port
     """
 
     _flatten_attrs = ['ip', 'port']
 
     def __init__(self, ip, port):
         """
-        :param ip: IPv4 address.
+        :param ip: IPv4 address
         :type ip: str.
-        :param port: Port number.
+        :param port: Port number
         :type port: int.
         """
         super().__init__('address', (ip, port))
@@ -31,22 +26,34 @@ class Address(Property):
 
     @property
     def ip(self):
+        """
+        :returns: IPv4 address
+        :rtype: str.
+        """
         return self._value[0]
 
     @ip.setter
     def ip(self, value):
         """
+        :param value: The ip
+        :type value: str.
         .. warning: NOT threadsafe!
         """
         self.value = (value, self._value[1])
 
     @property
     def port(self):
+        """
+        :returns: The port
+        :rtype: int.
+        """
         return self._value[1]
 
     @port.setter
     def port(self, value):
         """
+        :param value: The port
+        :type value: int.
         .. warning: NOT threadsafe!
         """
         self.value = (self._value[0], value)
@@ -54,7 +61,8 @@ class Address(Property):
     @property
     def tuple(self):
         """
-        :returns: A tuple of (ip, port).
+        :returns: The ip and port
+        :rtype: Tuple(ip, port)
         """
         return self._value
 

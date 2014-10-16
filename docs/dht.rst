@@ -16,14 +16,18 @@ If a node does not respond multiple times, then it is considered *dead* and drop
 Buckets
 +++++++
 
+.. TODO: Reference the correct config heading
+
 The majority of known contacts are kept in buckets.
-Each client has :attr:`~kademlia.constants.B` buckets, the same as the keysize.
+Each client has :attr:`~common.config.DEFAULT_CONF` [keysize]
+buckets, the same as the keysize.
 
 The bucket that a remote client belongs in is judged by:
 	significant_bit(my.hash ^ your.hash)
+
 aka, the largest bit of difference (distance) between us.
 
-Each bucket has :attr:`~kademlia.constants.K` clients in it.
+Each bucket has :attr:`~common.config.DEFAULT_CONF` [bucket_size] clients in it.
 The metric to choose which clients stay in the bucket is the longevity.
 
 Joining the Network
@@ -41,6 +45,8 @@ When a node is attempting to find another by its hash, it
 
 On Receipt of a Search Request
 ++++++++++++++++++++++++++++++
+
+
 
 On Data Receival
 ++++++++++++++++

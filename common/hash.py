@@ -21,7 +21,14 @@ def hash_from_pub(pubkey, bitsize):
 class Hash(Property):
     """
     Container for a hash.
-    Lots of overloaded operators.
+    Overloads:
+    ::
+        len()
+        str()
+        hash()
+        <, >
+        ==, !=
+        -, ^
 
     .. attribute:: value
 
@@ -59,13 +66,15 @@ class Hash(Property):
     def flatten(self):
         """
         For use with the :class:`~common.flattenable.Flattenable` interface
-        :returns: A simple b64 of the hash.
+        :returns: A simple b64 of the hash
+        :rtype: str.
         """
         return self.base64
 
     def abs_diff(self, other):
         """
-        :returns: the absolute difference between two hashes.
+        :returns: the absolute difference between two hashes
+        :rtype: :class:`~common.Hash`
         """
         if (other > self):
             return other - self
@@ -87,7 +96,8 @@ class Hash(Property):
 
     def significant_bit(self):
         """
-        :returns: The most significat bit place.
+        :returns: The most significant bit place.
+        :rtype: int.
         """
         for i in range(0, len(self._value)):
             b = 128
@@ -101,6 +111,7 @@ class Hash(Property):
     def bit_string(self):
         """
         :returns: String of 0's and 1's.
+        :rtype: str.
         """
         str_data = ''
         for i in range(0, len(self._value)):
@@ -117,5 +128,6 @@ class Hash(Property):
     def base64(self):
         """
         :returns: B64 encoded string.
+        :rtype: str.
         """
         return str(base64.b64encode(self._value), 'UTF-8')

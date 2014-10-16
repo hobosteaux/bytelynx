@@ -50,6 +50,7 @@ class UIServer():
                    'values': data}
         self.server.send_data(sub.address, message)
 
+    #: Min time between updates
     UPDATE_DELTA = timedelta(seconds=2)
 
     def try_update(self):
