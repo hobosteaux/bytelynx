@@ -3,6 +3,7 @@ from functools import reduce
 from datetime import datetime, timedelta
 
 from net.tcp import Server
+from ui import protocol
 
 
 class Client():
@@ -19,8 +20,8 @@ class UIServer():
 
     def __init__(self, port, max_conns):
         self.server = Server(port, max_conns)
-        self.server.on_data += self.data_handler
-        self.server.on_cleanup += self.clean_contact
+        self.server.on_data += self._data_handler
+        self.server.on_cleanup += self._clean_contact
         self.subscribers = {}
         self.properties = {}
         self._properties_lock = Lock()
@@ -31,9 +32,10 @@ class UIServer():
         self._updating = False
         self._update_lock = Lock()
         # Handlers
-        self._handlers = {'get_events': self.get_events_handler,
-                          'subscribe': self.subscribe_handler,
-                          'unsubscribe': self.unsubscribe_handler}
+        self.proto = protocol.get()
+        for x in filter(lambda y: y.mtype == protocol.client,
+                        self.proto.values()):
+            x.handler = self.__getattribute__('_%s_handler' % x.name)
 
     def add_property(self, name, path, object_root):
         obj = object_root
@@ -45,9 +47,7 @@ class UIServer():
                 obj.on_changed += self.on_property_update
 
     def send_data(self, sub,  message_name, data):
-        message = {'command': message_name,
-                   'version': 1,
-                   'values': data}
+        message = self.proto[message_name].pack(data)
         self.server.send_data(sub.address, message)
 
     #: Min time between updates
@@ -124,7 +124,7 @@ class UIServer():
                 self.subscribers[str(address)] = client
         return client
 
-    def clean_contact(self, address):
+    def _clean_contact(self, address):
         """
         Handler for cleaning up a contact once they disconnect.
         This is processed from the quitting listener's thread.
@@ -132,7 +132,7 @@ class UIServer():
         with self._subscriber_lock:
             del(self.subscribers[str(address)])
 
-    def data_handler(self, address, payload):
+    def _data_handler(self, address, payload):
         """
         Handler for when data is received.
         """
@@ -140,16 +140,16 @@ class UIServer():
         try:
             cmd_name = payload['command']
             data = payload['values']
-            self._handlers[cmd_name](subscriber, data)
+            self.proto[cmd_name].handler(subscriber, data)
         except Exception as e:
             print("UI ex: %s" % e)
 
-    def get_events_handler(self, subscriber, data):
+    def _get_events_handler(self, subscriber, data):
         names = [x for x in self.properties.keys()]
         print(names)
         self.send_data(subscriber, 'events', names)
 
-    def subscribe_handler(self, subscriber, data):
+    def _subscribe_handler(self, subscriber, data):
         for value in (x for x in data if x in self.properties):
             # Check only to look for a data update
             if value not in subscriber.subscriptions:
@@ -157,7 +157,7 @@ class UIServer():
                 self.send_data(subscriber, 'update',
                                self.properties[value].flatten())
 
-    def unsubscribe_handler(self, subscriber, data):
+    def _unsubscribe_handler(self, subscriber, data):
         for value in (x for x in data if x in self.properties):
             try:
                 subscriber.subscriptions.remove(value)
