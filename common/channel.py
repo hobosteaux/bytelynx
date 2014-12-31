@@ -19,8 +19,9 @@ def get_maxint(byte_size):
     return val
 
 
+# TODO: UP THIS MORE!!
 #: The byte size of a packet id
-ID_SIZE = 16
+ID_SIZE = 4
 #: The max value of a packet id
 ID_MAX = get_maxint(ID_SIZE)
 #: The level at which a renegotiate is started

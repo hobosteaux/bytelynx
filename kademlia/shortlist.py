@@ -3,7 +3,7 @@ from collections import namedtuple
 
 from common import Contact, Address, Hash, Event
 from common import List as list
-
+from .exceptions import NoContactsError
 
 class SearchContact():
     """
@@ -165,7 +165,10 @@ class Shortlist():
                 return None
         else:
             searchLambda = None
-        minCon = self.search_space.first(searchLambda)
+        try:
+            minCon = self.search_space.first(searchLambda)
+        except ValueError:
+            return None
 
         for contact in self.search_space:
             if (uncontacted and not contact.contacted):
@@ -259,7 +262,7 @@ class Shortlists():
         self._task_queue.put((self._start_search, (hash_, contacts)))
 
     def _start_search(self, hash_, contacts):
-        self._shortlists[hash_] = Shortlist(self._own_hash, hash_, contacts)
+        self._shortlists[hash_] = Shortlist(self._own_hash, hash_, contacts, self.K)
         self._shortlists[hash_].on_full_or_found += self.on_full_or_found
         self._shortlists[hash_].on_full_or_found += self.rm_list
 
@@ -281,7 +284,7 @@ class Shortlists():
         self._shortlists[hash_].rm_search(request_addr)
         self._shortlists[hash_].update(responses)
 
-    def rm_list(self, hash_):
+    def rm_list(self, hash_, *args):
         """
         Adds a task to the queue to remove a search for a hash.
 

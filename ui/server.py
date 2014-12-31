@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from net.tcp import Server
 from ui import protocol
 
+#TODO: Convert this to use websockets
 
 class Client():
 

@@ -55,6 +55,7 @@ class Kademlia():
         :param contact: The contact that data was received from
         :type contact: :class:`~common.Contact`
         """
+        print("DHT for %s" % contact)
         self.buckets.update(contact)
 
     def on_find_node_request(self, contact, data):
@@ -92,7 +93,7 @@ class Kademlia():
         # Get closest contacts.
         contacts = self.buckets.get_closest(hash_)
         # Init the search.
-        self.shortlists.start(hash_, contacts)
+        self.shortlists.start_search(hash_, contacts)
 
     def send_search(self, hash_, contact):
         """
