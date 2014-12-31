@@ -55,8 +55,8 @@ class Message():
     """
 
     def __init__(self, msg_name, *, mode='',
-                 is_pongable=False, tags=None,
-                 submessages=None, dht_func=None):
+                 is_pongable=False, is_pong=False, pong_msg=None,
+                 tags=None, submessages=None, dht_func=None):
         """
         :param msg_name: The name for this message.
         :type msg_name: str.
@@ -64,6 +64,10 @@ class Message():
         :type mode: str.
         :param is_pongable: If this message is is_pongable.
         :type is_pongable: bool.
+        :param is_pong: If this message is a pong type.
+        :type is_pong: bool.
+        :param pong_msg: Name of the pong msg to use.
+        :type pong_msg: str.
         :param tags: Tags to use to translate.
         :type tags: [:class:`net.tag.Tag`]
         :param submessages: Messages to fill the remaining data space.
@@ -80,6 +84,8 @@ class Message():
         else:
             raise ValueError("A msg_name or mode must be provided")
         self.is_pongable = is_pongable
+        self.is_pong = is_pong
+        self._pong_msg = pong_msg
         self.tags = [] if tags is None else tags
         self.submessages = {} if submessages is None else submessages
         # Init params for submessages
@@ -89,6 +95,20 @@ class Message():
         if dht_func is not None:
             self.on_dht += dht_func
         self.on_data = Event()
+
+    @property
+    def pong_msg(self):
+        """
+        Attempts to find the correct pong message.
+        :returns: The name of the PONG to use.
+        :rtype: str. or None
+        """
+        if self._pong_msg is not None:
+            return self._pong_msg
+        elif self.parent is not None:
+            return self.parent.pong_msg
+        else:
+            return None
 
     def __str__(self):
         return ("%s [%s]" % (self.msg_name, self.mode))
@@ -185,6 +205,17 @@ class Message():
         return msg_name, ret_data
 
 
+class PongMessage(Message):
+    """
+    This is a special case message for all pong types.
+    Makes the constructor or them a little more pleasant.
+    """
+    
+    def __init__(self, msg_name, *, dht_func=None):
+        super().__init__(msg_name, tags=[VarintTag('pong_id')],
+                         is_pong=True, dht_func=dht_func)
+
+
 class CarrierMessage(Message):
     """
     This is a special case messsage, as it deals with protocol headers.
@@ -238,10 +269,11 @@ class Encrypted(Message):
 
     .. note:: Right now this MUST have submessages
     """
-    def __init__(self, mode, *, tags=[], submessages=None, is_pongable=False):
+    def __init__(self, mode, *, tags=[], submessages=None,
+                 is_pongable=False, pong_msg=None):
         pkt_id_tag = VarintTag(Tags.PKTID)
         super().__init__('', tags=([pkt_id_tag] + tags),
-                         submessages=submessages,
+                         submessages=submessages, pong_msg=pong_msg,
                          is_pongable=is_pongable, mode=mode)
 
     def encode(self, contact, dict_data, bytes_data):
@@ -337,12 +369,11 @@ class Protocol():
                 # DHT AES-encrypted messages.
                 # Key comes from DH handshake.
                 # All encrypted messages have a pkt_id innately.
-                3: Encrypted(mode='aes-dht', submessages={
+                3: Encrypted(mode='aes-dht', pong_msg='dht.pong',
+                             submessages={
                     1: Message('dht.ping', is_pongable=True,
                                dht_func=self.on_dht),
-                    2: Message('dht.pong',
-                               tags=[VarintTag('pong_id')],
-                               dht_func=self.on_dht),
+                    2: PongMessage('dht.pong', dht_func=self.on_dht),
                     # DHT Search
                     3: Message('dht.search', is_pongable=True,
                                tags=[HashTag()],
@@ -366,10 +397,10 @@ class Protocol():
                     }),
                 # Net AES-encrypted messages.
                 # Key comes from PKI in AES-DHT layer.
-                4: Encrypted('aes-net', submessages={
-                    1: Message('net.pong',
-                               tags=[VarintTag('pong_id')],
-                               dht_func=self.on_dht)
+                4: Encrypted('aes-net', pong_msg='net.pong', submessages={
+                    1: Message('net.ping', is_pongable=True,
+                               dht_func=self.on_dht),
+                    2: PongMessage('net.pong', dht_func=self.on_dht)
                     }),
                 5: Message('testing',
                            tags=[Tag('int', 'I'),

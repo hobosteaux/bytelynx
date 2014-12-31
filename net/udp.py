@@ -1,5 +1,6 @@
 import socket
 from threading import Thread
+import traceback
 
 from common import Address, Event
 
@@ -34,9 +35,9 @@ class Server():
             try:
                 address = Address(address[0], address[1])
                 self.on_data(address, raw_data)
-
             except:
                 print("ERROR:", address, raw_data)
+                print(traceback.format_exc())
 
     def send(self, address, raw_data):
         """

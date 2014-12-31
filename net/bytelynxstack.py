@@ -52,9 +52,13 @@ class Stack():
         msg_name, data = self.protocol.decode(raw_data, contact)
 
         msg = self.protocol.messages[msg_name]
+        print("Recieved message: %s" % msg)
         # Do message housekeeping
         msg.on_dht(contact)
         if msg.is_pongable:
+            self.send_data(contact, msg.pong_msg, {'pong_id': data[Tags.PKTID]})
+        # If this is a PONG
+        elif msg.is_pong:
             self.watcher.rm_packet(data[Tags.PKTID],
                                    contact.channels[msg.mode])
 
