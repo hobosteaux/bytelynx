@@ -11,6 +11,14 @@ Installing
 
 Requirements
 ------------
+* Python 3.4 or above
+* cryptography 0.7 or above
+* websockets
+* sphinx for building the docs
+
+Quick debian guide
+------------------
+sudo pip3 install cryptography sphinx
 
 Goals
 +++++

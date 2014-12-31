@@ -1,10 +1,17 @@
+Welcome to bytelynx!
+
+The goal of bytelynx is to provide a secure overlay network based on 'communities'
+- groups of friends that have various levels of trust amoungst each other.
+
+Requirements:
+* Python 3.4 or above
+* cryptography 0.7 or above
+* sphinx for building the docs
+
+Quick debian setup instructions
+sudo apt-get install python3-pip
+
+For cryptography
+sudo apt-get install
+
 All documentation for this project is done via sphinx.
-One day, I will find a nice place to host it.
-
-Heads up, this is python3!
-
-Required packages:
-	cryptography
-#	PyOpenSSL (https://launchpad.net/pyopenssl)
-#	RSA (https://pypi.python.org/pypi/rsa)
-#	pyDTLS (provided with, upgraded to py3)
