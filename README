@@ -12,6 +12,10 @@ Quick debian setup instructions
 sudo apt-get install python3-pip
 
 For cryptography
-sudo apt-get install
+sudo apt-get install libssl-dev
+sudo pip3 install cryptography
+
+For sphinx
+sudo pip3 install sphinx
 
 All documentation for this project is done via sphinx.
