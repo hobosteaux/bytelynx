@@ -15,13 +15,12 @@ def get_maxint(byte_size):
         return 0
     val = 0xf
     for i in range(1, byte_size):
-        val = (val << 4) + 0xf
+        val = (val << 8) + 0xff
     return val
 
 
-# TODO: UP THIS MORE!!
 #: The byte size of a packet id
-ID_SIZE = 4
+ID_SIZE = 16
 #: The max value of a packet id
 ID_MAX = get_maxint(ID_SIZE)
 #: The level at which a renegotiate is started
