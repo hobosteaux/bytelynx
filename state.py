@@ -50,7 +50,7 @@ class _State():
         # self.keypair = KeyPair(private=keyblob)
 
         # TODO: Load pub / priv, base hash off of this.
-        hash_ = Hash(os.urandom(20))
+        hash_ = Hash(os.urandom(self.bitsize // 8))
 
         # TODO: load this from config
         self.dh_group = self.config['kademlia']['group']

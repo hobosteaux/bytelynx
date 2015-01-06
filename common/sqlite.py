@@ -68,7 +68,7 @@ class dbinterface():
         """
         statement = 'DELETE FROM swarm WHERE ip=? and port=?'
         cur = self.conn.cursor()
-        cur.execute(statement, contact.Address.AsTuple())
+        cur.execute(statement, contact.address.tuple)
         self.conn.commit()
         cur.close()
 

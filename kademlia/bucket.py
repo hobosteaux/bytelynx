@@ -34,7 +34,7 @@ class Bucket:
         :type contact: :class:`common.Contact`
         :param report: Pop the :func:`~common.Bucket.on_added` event or not.
         """
-        if (contact not in self.contacts):
+        if contact not in self.contacts:
             if (len(self.contacts) <= self.K):
                 self.contacts.append(contact)
                 contact.on_death += self.contact_death
@@ -52,11 +52,11 @@ class Bucket:
         :param contact: Dieing contact.
         :type contact: :class:`common.Contact`
         """
-        if (contact in self.contacts):
+        if contact in self.contacts:
             self.contacts.remove(contact)
             contact.on_death -= self.contact_death
             self.on_removed(contact)
-        if (len(self.waitlist > 0)):
+        if len(self.waitlist) > 0:
             replacement = self.waitlist[len(self.waitlist) - 1]
             self.contacts.append(replacement)
             self.waitlist.on_death += self.contact_death
@@ -67,7 +67,7 @@ class Bucket:
         """
         Event fired if a contact on the waitlist dies.
         """
-        if (contact in self.waitlist):
+        if contact in self.waitlist:
             self.waitlist.remove(contact)
             contact.on_death -= self.waitlist_death
 
