@@ -40,13 +40,25 @@ class SentPacket():
         """
         self.sent_time = datetime.now()
 
+    def ack(self):
+        self.received_time = datetime.now()
+
     @property
-    def latency(self):
+    def ctt(self):
+        """
+        :return: How long this ping has been active
+        :rtype: float
+        """
+        td = datetime.now() - self.sent_time
+        return td.total_seconds() * 1000
+
+    @property
+    def rtt(self):
         """
         :return: How old this ping is, in milliseconds.
         :rtype: float
         """
-        td = datetime.now() - self.sent_time
+        td = self.received_time - self.sent_time
         return td.total_seconds() * 1000
 
     @property

@@ -199,8 +199,8 @@ class Message():
                                      data[offset:offset +
                                           struct.calcsize(TYPE_SYMBOL)])[0]
             offset += struct.calcsize(TYPE_SYMBOL)
-            ret_data[Tags.TYPE] = pkt_type
-            msg_name, ret_data[Tags.PAYLOAD] = self.submessages[pkt_type]\
+            ret_data[Tags.type.value] = pkt_type
+            msg_name, ret_data[Tags.payload.value] = self.submessages[pkt_type]\
                 .decode(data[offset:], contact)
         return msg_name, ret_data
 
@@ -212,7 +212,7 @@ class PongMessage(Message):
     """
     
     def __init__(self, msg_name, *, dht_func=None):
-        super().__init__(msg_name, tags=[VarintTag('pong_id')],
+        super().__init__(msg_name, tags=[VarintTag(Tags.pongid.value)],
                          is_pong=True, dht_func=dht_func)
 
 
@@ -257,7 +257,7 @@ class CarrierMessage(Message):
         # Get data out of it.
         msg_name, r_dict = self.submessages[pkt_type].decode(data[offset:],
                                                              contact)
-        r_dict[Tags.TYPE] = pkt_type
+        r_dict[Tags.type.value] = pkt_type
         return msg_name, r_dict
 
 
@@ -271,7 +271,7 @@ class Encrypted(Message):
     """
     def __init__(self, mode, *, tags=[], submessages=None,
                  is_pongable=False, pong_msg=None):
-        pkt_id_tag = VarintTag(Tags.PKTID)
+        pkt_id_tag = VarintTag(Tags.pktid.value)
         super().__init__('', tags=([pkt_id_tag] + tags),
                          submessages=submessages, pong_msg=pong_msg,
                          is_pongable=is_pongable, mode=mode)

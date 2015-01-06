@@ -9,6 +9,13 @@ from .hash import hash_from_pub
 from .property import Property
 
 
+class PingModes(Enum):
+    #: ping = (old / 1.5) + (new / 3)
+    geometric = 1
+    #: ping = new
+    absolute = 2
+
+
 class Contact(Property):
     """
     .. attribute:: pings
@@ -116,12 +123,6 @@ class Contact(Property):
         c = Channel(Modules[mode]())
         self.channels[mode] = c
         return c
-
-    class PingModes(Enum):
-        #: ping = (old / 1.5) + (new / 3)
-        geometric = 1
-        #: ping = new
-        absolute = 2
 
     def change_ping(self, ping, mode=PingModes.geometric):
         """

@@ -49,10 +49,10 @@ class Channel():
         :type mode: Class derived from :class:`~crypto.CryptoModule`
         """
 
-        # Get the main bytelynx stack
-        # self.net = state.get().net
         self.state = 'idle'
         self._lock = Lock()
+        # TODO: Will this orphan packets if one is resent?
+        self.packets = {}
 
         # Random packet id so it is not predictable.
         self._pkt_id = ID_MAX

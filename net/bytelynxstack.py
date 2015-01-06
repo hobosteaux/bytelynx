@@ -50,17 +50,20 @@ class Stack():
 
         # Decode the packet
         msg_name, data = self.protocol.decode(raw_data, contact)
-
         msg = self.protocol.messages[msg_name]
         print("Recieved message: %s" % msg)
+        channel = contact.channels[msg.mode]
+
         # Do message housekeeping
         msg.on_dht(contact)
         if msg.is_pongable:
-            self.send_data(contact, msg.pong_msg, {'pong_id': data[Tags.PKTID]})
+            self.send_data(contact, msg.pong_msg,
+                           {Tags.pongid.value: data[Tags.pktid.value]})
         # If this is a PONG
         elif msg.is_pong:
-            self.watcher.rm_packet(data[Tags.PKTID],
-                                   contact.channels[msg.mode])
+            payload = data[Tags.payload.value]
+            channel.packets[payload[Tags.pongid.value]].ack()
+            self.watcher.rm_packet(payload[Tags.pongid.value], channel)
 
         # Proc the correct on_data event
         msg.on_data(contact, data)
@@ -92,7 +95,7 @@ class Stack():
         # Get a packet id for this message
         channel = contact.channels[msg.mode]
         pkt_id = channel.pkt_id
-        data[Tags.PKTID] = pkt_id
+        data[Tags.pktid.value] = pkt_id
 
         # Encode data
         payload = msg.encode(contact, data)
@@ -103,4 +106,5 @@ class Stack():
         # Check if this message is sent 'reliably'
         if msg.is_pongable:
             pkt = SentPacket(pkt_id, payload, contact, channel)
+            channel.packets[pkt_id] = pkt
             self.watcher.add_packet(pkt)

@@ -1,7 +1,7 @@
+from enum import Enum
 
-class constants():
-    PAYLOAD = 'payload'
-    TYPE = 'type'
-    PKTID = 'pkt_id'
-
-Tags = constants()
+class Tags(Enum):
+    payload = 'payload'
+    type = 'type'
+    pktid = 'pkt_id'
+    pongid = 'pong_id'

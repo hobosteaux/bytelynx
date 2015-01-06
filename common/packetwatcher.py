@@ -31,6 +31,7 @@ class PacketWatcher():
         self._lock = Lock()
         self._thread = Thread(target=self._sweep)
         self._thread.daemon = True
+        self._thread.start()
 
     def _sweep(self):
         """
@@ -51,11 +52,12 @@ class PacketWatcher():
                 lambda x: x.info in self._rm_dict)
             self._rm_dict = {}
             for pkt in removed:
-                pkt.contact.change_ping(pkt.latency)
+                pkt.contact.change_ping(pkt.rtt)
             # Remove dead packets
             dead, self._packets = self._packets.split(
-                lambda x: x.latency > x.contact.ping * TIMEOUTMULT)
+                lambda x: x.ctt > x.contact.ping * TIMEOUTMULT)
             for pkt in dead:
+                print("DEAD PACKET: %s > %s" % (pkt.ctt, pkt.contact.ping))
                 pkt.contact.change_liveliness()
                 if pkt.contact.is_alive:
                     self.on_resend(pkt)
