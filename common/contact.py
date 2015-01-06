@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 from .event import Event
 from .list import List as list
@@ -38,7 +39,7 @@ class Contact(Property):
     """
 
     #: Sliding counter on ping response times
-    ping = 150
+    ping = 1500
     #: Sliding counter on missed pings
     liveliness = 1
     #: Packet counter
@@ -116,17 +117,13 @@ class Contact(Property):
         self.channels[mode] = c
         return c
 
-    # TODO: Turn this into an Enum
-    class ping_modes():
-        """
-        Modes which the ping of a class can be modified.
-        """
+    class PingModes(Enum):
         #: ping = (old / 1.5) + (new / 3)
-        geometric = 'geometric'
+        geometric = 1
         #: ping = new
-        absolute = 'absolute'
+        absolute = 2
 
-    def change_ping(self, ping, mode='geometric'):
+    def change_ping(self, ping, mode=PingModes.geometric):
         """
         Modifies the ping of this contact.
         Also sets liveliness, as this is only called when
@@ -137,9 +134,9 @@ class Contact(Property):
         :param mode: Mode to weight the ping
         :type mode: str.
         """
-        if mode == 'geometric':
+        if mode == PingModes.geometric:
             self.ping = (self.ping / 1.5) + (ping / 3)
-        if mode == 'absolute':
+        if mode == PingModes.absolute:
             self.ping = ping
         self.change_liveliness(degrade=False)
 
