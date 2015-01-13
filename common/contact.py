@@ -8,6 +8,8 @@ from .exceptions import ProtocolError
 from .hash import hash_from_pub
 from .property import Property
 
+DEATH_THRESHOLD = 0.1
+
 
 class PingModes(Enum):
     #: ping = (old / 1.5) + (new / 3)
@@ -89,7 +91,7 @@ class Contact(Property):
         :return: If this contact is considered 'alive'
         :rtype: bool.
         """
-        return self.liveliness > 0
+        return self.liveliness > DEATH_THRESHOLD
 
     def set_hash(self, hash_):
         """
@@ -150,7 +152,7 @@ class Contact(Property):
         """
         self.liveliness *= 0.8
         if degrade:
-            if (self.liveliness <= 0.1):
+            if not self.is_alive:
                 self.on_death(self)
         else:
             self.liveliness += 0.2
