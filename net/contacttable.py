@@ -45,11 +45,11 @@ class ContactTable(Property):
 
     @property
     def net_contacts(self):
-        return [self._contacts_by_addr.values()]
+        return list(self._contacts_by_addr.values())
 
     @property
     def friends(self):
-        return [self._friends.values()]
+        return list(self._friends.values())
 
     def update(self, contacts):
         """

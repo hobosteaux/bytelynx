@@ -102,7 +102,7 @@ class Hash(Property):
         for i in range(0, len(self._value)):
             b = 128
             for j in range(0, 8):
-                if (self._value[i] & b != 0):
+                if self._value[i] & b:
                     return ((len(self._value) * 8) - (i * 8) - j)
                 b //= 2
         return 0

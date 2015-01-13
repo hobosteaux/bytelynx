@@ -90,16 +90,17 @@ class NodeTag(Tag):
     """
 
     def __init__(self, translator):
+        # TODO: Fix this to add the hash in
         super().__init__('contact', '4BH')
         self.translator = translator
 
     @property
     def _encoded(self):
-        return struct.pack(self.tag_struct,
-                           *([self._value.hash.value] +
-                             [int(x) for x
-                              in self._value.address.ip.split('.')] +
-                             [self._value.address.port]))
+        return self._value.hash.value + struct.pack(
+            self.tag_struct,
+           *([int(x) for x
+              in self._value.address.ip.split('.')] +
+             [self._value.address.port]))
 
     @Tag.encoded.setter
     def encoded(self, value):
@@ -144,6 +145,7 @@ class ListTag(Tag):
             x += self._header_size
             a.append(self.inner_tag.to_value(in_bytes[x: x + sz]))
             x += sz
+        self._value = a
 
 
 class BytesTag(Tag):

@@ -5,25 +5,31 @@ from common import Contact, Address, Hash, Event
 from common import List as list
 from .exceptions import NoContactsError
 
+
 class SearchContact():
     """
     Simple struct for search contacts.
+    Must be a class because namedtuples can not be modified.
 
     .. attribute:: contacted
 
-        If a contact has been contacted yet.
+         If a contact has been contacted yet
     .. attribute:: contact
 
-        The contact's address.
+        The contact's address
     """
 
     def __init__(self, contacted, contact):
         self.contacted = contacted
         self.contact = contact
 
+    def __str__(self):
+        return "<%s: %s>" % (self.contacted, self.contact)
+
+
 #: A representation of each node that has an
 #: asynchronous operation in progress.
-InProgress = namedtuple('InProgress', ['address', 'time'])
+InProgress = namedtuple('InProgress', ['contact', 'time'])
 
 
 class Shortlist():
@@ -51,16 +57,16 @@ class Shortlist():
         Fired when all closer contacts are exausted or the contact is found.
     """
 
-    def __init__(self, own_hash, target_hash, initialContacts, K):
+    def __init__(self, own_hash, target_hash, initial_contacts, K):
         """
         :param target_hash: The :hash that this shortlist is seaching for.
         :type target_hash: :class:`common.Hash`
-        :param initialContacts: Contacts to start the shorlist with.
-        :type initialContacts: [:class:`common.Contact`]
+        :param initial_contacts: Contacts to start the shorlist with.
+        :type initial_contacts: [:class:`common.Contact`]
         """
         self.K = K
-        self.search_space = list(SearchContact(False, x)
-                                 for x in initialContacts)
+        self.search_space = list(SearchContact(contacted=False, contact=x)
+                                 for x in initial_contacts)
         self.own_hash = own_hash
         self.target_hash = target_hash
         self.on_full_or_found = Event()
@@ -84,14 +90,14 @@ class Shortlist():
         :param new_contacts: Contacts returned by a search() operation.
         :type new_contacts: [:class:`common.Contact`]
         """
-        # sort incoming contacts.
-        new_contacts.sort(key=lambda x: x.hash_ ^ self.target_hash)
+        # Sort incoming contacts
+        new_contacts.sort(key=lambda x: x.hash ^ self.target_hash)
 
         for contact in new_contacts:
-            # Can not include self in shortlist.
-            if (self.own_hash != contact.hash_):
-                # Stop if the desired contact is found.
-                if (contact.hash_ == self.target_hash):
+            # Can not include self in shortlist
+            if (self.own_hash != contact.hash):
+                # Stop if the desired contact is found
+                if (contact.hash == self.target_hash):
                     self.on_full_or_found(self.target_hash, contact)
                 else:
                     self._try_add(contact)
@@ -103,7 +109,7 @@ class Shortlist():
         :param addr: The address to remove.
         :type addr: :class:`common.Address`
         """
-        self.in_progress = list(filter(lambda x: x.address != addr,
+        self.in_progress = list(filter(lambda x: x.contact.address != addr,
                                        self.in_progress))
 
     def _try_add(self, contact):
@@ -117,7 +123,8 @@ class Shortlist():
         :type contact: :class:`common.Contact`
         """
         # Check that the hash does not already exist.
-        if not (self.search_space.Any(lambda x: x.hash_ == contact.hash_)):
+        dbgcontact = contact
+        if not self.search_space.any(lambda x: x.contact.hash == dbgcontact.hash):
             # if < K contacts, add to the list.
             if (len(self.search_space) < self.K):
                 self.search_space.append([False, contact])
@@ -125,14 +132,14 @@ class Shortlist():
             elif (self.searched < self.K):
                 # Set the max to the min so it must increment.
                 max = self.find_min()
-                if (contact.hash_ ^ self.target_hash <
-                        max.contact.hash_ ^ self.target_hash):
+                if (contact.hash ^ self.target_hash <
+                        max.contact.hash ^ self.target_hash):
                     self.search_space.remove(max)
                     self.search_space.append([False, contact])
                     self.sort()
 
     def sort(self):
-        self.search_space.sort(key=lambda x: x[1].hash_ ^ self.target_hash)
+        self.search_space.sort(key=lambda x: x.contact.hash ^ self.target_hash)
 
     def get_next(self):
         """
@@ -141,11 +148,10 @@ class Shortlist():
         """
         # We are below the count and have at least one useable contact still.
         if ((self.searched <= self.K) and
-                (self.search_space.any(lambda x: not x.contact))):
+                (self.search_space.any(lambda x: not x.contacted))):
             item = self.find_min()
             item.contacted = True
-            self.searched += 1
-            self.in_progress.append(InProgress(item.contact.Address,
+            self.in_progress.append(InProgress(item.contact,
                                                datetime.now()))
             return item.contact
         else:
@@ -172,12 +178,12 @@ class Shortlist():
 
         for contact in self.search_space:
             if (uncontacted and not contact.contacted):
-                if (contact.contact.hash_ ^ self.target_hash <
-                        minCon.contact.hash_ ^ self.target_hash):
+                if (contact.contact.hash ^ self.target_hash <
+                        minCon.contact.hash ^ self.target_hash):
                     minCon = contact
             elif (not uncontacted):
-                if (contact.contact.hash_ ^ self.target_hash <
-                        minCon.contact.hash_ ^ self.target_hash):
+                if (contact.contact.hash ^ self.target_hash <
+                        minCon.contact.hash ^ self.target_hash):
                     minCon = contact
         return minCon
 
@@ -201,12 +207,12 @@ class Shortlist():
         # Reversed because we should ALWAYS be increasing.
         for contact in reversed(self.search_space):
             if (uncontacted and not contact.contacted):
-                if (contact.contact.hash_ ^ self.target_hash >
-                        maxCon.contact.hash_ ^ self.target_hash):
+                if (contact.contact.hash ^ self.target_hash >
+                        maxCon.contact.hash ^ self.target_hash):
                     maxCon = contact
             elif (not uncontacted):
-                if (contact.contact.hash_ ^ self.target_hash >
-                        maxCon.contact.hash_ ^ self.target_hash):
+                if (contact.contact.hash ^ self.target_hash >
+                        maxCon.contact.hash ^ self.target_hash):
                     maxCon = contact
         return maxCon
 
@@ -300,7 +306,10 @@ class Shortlists():
 
     def _clean_lists(self):
         for hash_, shortlist in self._shortlists.items():
-            alive = list(filter(lambda x: (datetime.now()-x.time).seconds > 3,
+            # Magic Number [1000]: convert seconds to ms
+            # Magic Number [5]: tweakable to set how long to timeout requests
+            alive = list(filter(lambda x: (datetime.now()-x.time).total_seconds() * 1000
+                                           < x.contact.ping * 5,
                                 shortlist.in_progress))
             # If any of the requests have timed out.
             if (len(alive) != len(shortlist.in_progress)):
@@ -309,8 +318,6 @@ class Shortlists():
             while (len(shortlist.in_progress) < self.A):
                 next_min = shortlist.get_next()
                 # We have no more useable responses.
-                print('Next Min:', next_min)
-                print('in_progress:', shortlist.in_progress)
                 if (next_min is None):
                     # No searches are in progress.
                     if (len(shortlist.in_progress) == 0):
