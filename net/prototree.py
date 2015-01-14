@@ -7,7 +7,7 @@ from net.common import (MAGIC_HEADER, PROTO_VERSION,
                         TYPE_SYMBOL, SIZE_SYMBOL,
                         VERSION_SYMBOL)
 from .tagconstants import Tags
-from common.exceptions import ProtocolError
+from common.exceptions import ProtocolError, ChannelDNEError
 from common import Event
 
 
@@ -284,9 +284,13 @@ class Encrypted(Message):
         return self.parent.encode(contact, dict_data, data)
 
     def decode(self, data, contact):
-        payload = contact.channels[self.mode]\
-            .crypto.decrypt(data)
-        return super().decode(payload, contact)
+        try:
+            payload = contact.channels[self.mode]\
+                .crypto.decrypt(data)
+        except KeyError:
+            raise ChannelDNEError(self.mode)
+        else:
+            return super().decode(payload, contact)
 
 
 class Protocol():

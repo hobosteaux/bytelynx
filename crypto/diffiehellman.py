@@ -122,6 +122,10 @@ class DHCrypto(CryptoModule):
         if self.state == 'g_set':
             self.state = 'initialized'
             self.key = pow(value, self.private, self.p)
+            # This *should* work here.
+            # Although... this may send queued packets before
+            # we mix on the other side.
+            self.on_finalization()
         else:
             raise StateError('Crypto state is incorrect')
 

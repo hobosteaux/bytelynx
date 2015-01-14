@@ -23,6 +23,7 @@ class AESCrypto(CryptoModule):
     """
 
     def __init__(self):
+        super().__init__()
         self.state = 'uninitialized'
 
     def set_key(self, key=None):
@@ -41,6 +42,7 @@ class AESCrypto(CryptoModule):
                 raise KeySizeError()
             self.key = key
         self.state = 'initialized'
+        self.on_finalization()
 
     def encrypt(self, data):
         """

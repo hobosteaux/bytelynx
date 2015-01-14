@@ -1,7 +1,7 @@
 import os
 
 from common.exceptions import AbstractError
-
+from common import Event
 
 class CryptoModule():
     """
@@ -9,6 +9,7 @@ class CryptoModule():
     """
     def __init__(self):
         self.state = 'created'
+        self.on_finalization = Event()
 
     def encrypt(self, data):
         """

@@ -9,3 +9,7 @@ class AbstractError(Exception):
 class ProtocolError(Exception):
     """Exception thrown if decoding goes awry"""
     pass
+
+class ChannelDNEError(Exception):
+    """Exception thrown if a channel is not set up yet"""
+    pass

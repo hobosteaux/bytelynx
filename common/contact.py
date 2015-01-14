@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from collections import defaultdict
 
 from .event import Event
 from .list import List as list
@@ -73,6 +74,9 @@ class Contact(Property):
         self.needs_hash = True
         self.set_hash(hash)
 
+        self.sent_msg_queue = defaultdict(list)
+        self.recv_msg_queue = defaultdict(list)
+
         self.create_channel('bytelynx')
 
     def __str__(self):
@@ -122,9 +126,30 @@ class Contact(Property):
         from crypto import Modules
         if mode in self.channels:
             raise ProtocolError('Channel already exists')
-        c = Channel(Modules[mode]())
+        c = Channel(mode, Modules[mode]())
         self.channels[mode] = c
+        c.on_finalization += self.on_channel_finalization
         return c
+
+    def add_sent_msg(self, channel, msg_name, data):
+        self.sent_msg_queue[channel].append((msg_name, data))
+
+    def add_recv_msg(self, channel, addr, raw_data):
+        self.recv_msg_queue[channel].append((addr, raw_data))
+
+    def on_channel_finalization(self, channel):
+        # If we had messages waiting on the creation of this channel
+        if len(self.sent_msg_queue[channel.mode]) > 0:
+            import state
+            net = state.get().net
+            for msg_name, data in self.sent_msg_queue[channel.mode]:
+                net.send_data(self, msg_name, data)
+        if len(self.recv_msg_queue[channel.mode]) > 0:
+            import state
+            net = state.get().net
+            for addr, raw_data in self.recv_msg_queue[channel.mode]:
+                net.on_data(addr, raw_data)
+
 
     def change_ping(self, ping, mode=PingModes.geometric):
         """

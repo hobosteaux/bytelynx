@@ -1,6 +1,7 @@
 from os import urandom
 from threading import Lock
 
+from .event import Event
 
 def get_maxint(byte_size):
     """
@@ -43,16 +44,19 @@ class Channel():
         ['idle', 'active', 'reneg_issued', 'closed']
     """
 
-    def __init__(self, crypto):
+    def __init__(self, mode, crypto):
         """
         :param mode: The encryption object.
         :type mode: Class derived from :class:`~crypto.CryptoModule`
         """
 
         self.state = 'idle'
+        self.mode = mode
         self._lock = Lock()
         # TODO: Will this orphan packets if one is resent?
         self.packets = {}
+        self.on_finalization = Event()
+        crypto.on_finalization += (lambda: self.on_finalization(self))
 
         # Random packet id so it is not predictable.
         self._pkt_id = ID_MAX

@@ -4,7 +4,7 @@ from .prototree import Protocol
 from .udp import Server
 from net import protofuncs
 from common import SentPacket, PacketWatcher
-
+from common.exceptions import ChannelDNEError
 
 class Stack():
     """
@@ -49,24 +49,29 @@ class Stack():
         contact = self._contacts.translate(address)
 
         # Decode the packet
-        msg_name, data = self.protocol.decode(raw_data, contact)
-        msg = self.protocol.messages[msg_name]
-        print("Recieved message: %s" % msg)
-        channel = contact.channels[msg.mode]
+        try:
+            msg_name, data = self.protocol.decode(raw_data, contact)
+        # Queue the message to be parsed when the channel is initialized fully
+        except ChannelDNEError as e:
+            contact.add_recv_msg(e.args[0], address, raw_data)
+        else:
+            msg = self.protocol.messages[msg_name]
+            print("Recieved message: %s" % msg)
+            channel = contact.channels[msg.mode]
 
-        # Do message housekeeping
-        msg.on_dht(contact)
-        if msg.is_pongable:
-            self.send_data(contact, msg.pong_msg,
-                           {Tags.pongid.value: data[Tags.pktid.value]})
-        # If this is a PONG
-        elif msg.is_pong:
-            payload = data[Tags.payload.value]
-            channel.packets[payload[Tags.pongid.value]].ack()
-            self.watcher.rm_packet(payload[Tags.pongid.value], channel)
+            # Do message housekeeping
+            msg.on_dht(contact)
+            if msg.is_pongable:
+                self.send_data(contact, msg.pong_msg,
+                               {Tags.pongid.value: data[Tags.pktid.value]})
+            # If this is a PONG
+            elif msg.is_pong:
+                payload = data[Tags.payload.value]
+                channel.packets[payload[Tags.pongid.value]].ack()
+                self.watcher.rm_packet(payload[Tags.pongid.value], channel)
 
-        # Proc the correct on_data event
-        msg.on_data(contact, data)
+            # Proc the correct on_data event
+            msg.on_data(contact, data)
 
     def resend(self, pkt):
         """
@@ -93,18 +98,31 @@ class Stack():
         msg = self.protocol.messages[msg_name]
         print("Sending message: %s" % msg)
         # Get a packet id for this message
-        channel = contact.channels[msg.mode]
-        pkt_id = channel.pkt_id
-        data[Tags.pktid.value] = pkt_id
+        try:
+            channel = contact.channels[msg.mode]
+        # If we have not extablished a channel yet
+        except KeyError as e:
+            if msg.mode == 'aes-dht':
+                print("Establishing AES-DHT channel")
+                contact.add_sent_msg(msg.mode, msg_name, data)
+                # Send a 'Hello'
+                import state
+                s = state.get()
+                self.send_data(contact, 'hello', {'hash': s.contact.hash})
+            else:
+                raise e
+        else:
+            pkt_id = channel.pkt_id
+            data[Tags.pktid.value] = pkt_id
 
-        # Encode data
-        payload = msg.encode(contact, data)
+            # Encode data
+            payload = msg.encode(contact, data)
 
-        # Send data to a contact
-        self._server.send(contact.address, payload)
+            # Send data to a contact
+            self._server.send(contact.address, payload)
 
-        # Check if this message is sent 'reliably'
-        if msg.is_pongable:
-            pkt = SentPacket(pkt_id, payload, contact, channel)
-            channel.packets[pkt_id] = pkt
-            self.watcher.add_packet(pkt)
+            # Check if this message is sent 'reliably'
+            if msg.is_pongable:
+                pkt = SentPacket(pkt_id, payload, contact, channel)
+                channel.packets[pkt_id] = pkt
+                self.watcher.add_packet(pkt)
