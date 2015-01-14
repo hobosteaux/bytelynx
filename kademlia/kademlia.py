@@ -23,8 +23,24 @@ class Kademlia():
     """
 
     def __init__(self, net, own_contact, dir_, K, B, A):
+        """
+        :param net:
+        :type net: :class:`~net.BytelynxStack`
+        :param own_contact:
+        :type own_contact: :class:`~common.Contact`
+        :param dir_:
+        :type dir_:
+        :param K: Bucket size
+        :type K: int.
+        :param B: Key size
+        :type B: int.
+        :param A: Paralellism
+        :type A: int.
+        """
         self.db_conn = dbinterface(dir_)
         self.net = net
+        self.K = K
+        self.own_contact = own_contact
 
         self.shortlists = Shortlists(own_contact.hash, K, A)
         self.shortlists.on_search += self.send_search
@@ -62,14 +78,22 @@ class Kademlia():
         """
         Event handler for when a request for a node arrives.
         """
-        contacts = self.buckets.get_closest(data['hash'])
-        retData = {'hash': data['hash'], 'nodes': contacts}
+        contacts = self.buckets.get_closest(data['payload']['hash'],
+                                            count=self.K + 2)
+        # Filter out self and requesting contacts
+        contacts = [x for x in contacts
+                    if x != contact
+                    and x != self.own_contact][:self.K]
+        print("FIND_CONTACTS: %s" % contacts)
+        retData = {'hash': data['payload']['hash'], 'nodes': contacts}
         self.net.send_data(contact, 'dht.response', retData)
 
     def on_find_node_response(self, contact, data):
         # Translate to 'real' contacts first
-        contacts = self.net.update_contacts(data['nodes'])
-        self.shortlists.add_response(data['hash'],
+        print("INDATA %s" % data['payload']['nodes'])
+        contacts = self.net.update_contacts(data['payload']['nodes'])
+        print("INCONTACTS: %s" % contacts)
+        self.shortlists.add_response(data['payload']['hash'],
                                      contact.address,
                                      contacts)
 

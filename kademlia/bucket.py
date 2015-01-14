@@ -102,12 +102,22 @@ class Buckets():
     """
 
     def __init__(self, own_hash, K, B):
+        """
+        :param own_hash: Our own hash
+        :type own_hash: :class:`~common.Hash`
+        :param K: Bucket size
+        :type K: int.
+        :param B: Key size
+        :type B: int.
+        """
         self.K = K
         self.B = B
         self.own_hash = own_hash
         self._last_check = datetime.now()
         self.on_added = Event()
         self.on_removed = Event()
+        # B+1 buckets because 0 means perfect match
+        # 1-320 represent the bit level difference (index + 1)
         self._buckets = [Bucket(K) for i in range(self.B + 1)]
         for bucket in self._buckets:
             bucket.on_added += self.on_added
@@ -146,7 +156,7 @@ class Buckets():
         :type use_waitlist: bool.
         """
         significant_bit = (self.own_hash ^ hash).significant_bit()
-        if (not use_waitlist):
+        if not use_waitlist:
             return self._buckets[significant_bit]\
                 .contacts.first(lambda x: x.hash == hash)
         else:
@@ -176,14 +186,13 @@ class Buckets():
 
         # Sorted Indices (for prox to the contact).
         # Ignore the one that is its own bucket to avoid any recursion.
-        si = sorted([x for x in range(1, self.B)],
-                    key=lambda x: abs(x - significant_bit))[1:]
+        si = sorted([x for x in range(1, self.B + 1)],
+                    key=lambda x: abs(x - significant_bit))
 
-        # Yeah, yeah, we are ignoring the farthest away contact.
-        for dindex in range(0, len(si) // 2):
-            contacts += self._buckets[si[dindex * 2]].contacts
-            contacts += self._buckets[si[(dindex * 2) + 1]].contacts
-            if (len(contacts) >= self.B):
+        for dindex in si:
+            contacts += self._buckets[dindex].contacts
+            if (len(contacts) >= count):
                 return sorted(contacts, key=lambda x:
-                              targethash.AbsDiff(self.own_hash ^ x.hash))[:20]
+                              targethash.AbsDiff(self.own_hash ^ x.hash))[:count]
+        print("GET_CLOSEST ret: %s" % contacts)
         return contacts

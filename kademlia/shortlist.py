@@ -123,11 +123,10 @@ class Shortlist():
         :type contact: :class:`common.Contact`
         """
         # Check that the hash does not already exist.
-        dbgcontact = contact
-        if not self.search_space.any(lambda x: x.contact.hash == dbgcontact.hash):
+        if not self.search_space.any(lambda x: x.contact.hash == contact.hash):
             # if < K contacts, add to the list.
             if (len(self.search_space) < self.K):
-                self.search_space.append([False, contact])
+                self.search_space.append(SearchContact(False, contact))
             # if == K contacts, and < K contacted.
             elif (self.searched < self.K):
                 # Set the max to the min so it must increment.
@@ -135,7 +134,7 @@ class Shortlist():
                 if (contact.hash ^ self.target_hash <
                         max.contact.hash ^ self.target_hash):
                     self.search_space.remove(max)
-                    self.search_space.append([False, contact])
+                    self.search_space.append(SearchContact(False, contact))
                     self.sort()
 
     def sort(self):
