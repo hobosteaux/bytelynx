@@ -135,4 +135,4 @@ class Kademlia():
         """
         Event proc'd on the end of a search.
         """
-        print("Found Contact:", contact, hash_)
+        print("Found Contact:", contact, hash_.base64)

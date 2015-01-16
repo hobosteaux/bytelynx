@@ -42,8 +42,10 @@ It could also begin to introduce fake clients into the search results of other c
 
 *Clients will not be included in a node's response to another unless that node has been in contact.*
 
-*When doing a search, a 'voting' process whill occur.
-This will be based on how close the node id is to the target hash (ranked) and the amount of nodes that corraborated that it existed.*
+When doing a search, a 'voting' process whill occur.
+This is done by adding a +1 to the closest contact presented by each search.
+The contact with the most upvotes should (theoretically) be the closest.
+In the case of a tie, the closest node to the hash wins.
 
 Joining DHT networks
 ++++++++++++++++++++

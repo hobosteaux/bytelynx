@@ -16,15 +16,43 @@ class SearchContact():
          If a contact has been contacted yet
     .. attribute:: contact
 
-        The contact's address
+        The contact
     """
-
     def __init__(self, contacted, contact):
         self.contacted = contacted
         self.contact = contact
 
     def __str__(self):
         return "<%s: %s>" % (self.contacted, self.contact)
+
+
+class ClosestContact():
+    """
+    Simple struct to represent how close a contact is
+
+    .. attribute:: votes
+
+        How many votes this contact has
+    .. attribute:: contact
+
+        The contact
+    .. attribute:: distance
+
+        The significant bit of contact ^ target
+    """
+    def __init__(self, contact, distance):
+        self.votes = 0
+        self.contact = contact
+        self.distance = distance
+
+    def increment(self):
+        self.votes += 1
+
+    def __gt__(self, other):
+        return (self.votes > other.votes
+                or (self.votes == other.votes
+                    and self.distance < other.distance
+                ))
 
 
 #: A representation of each node that has an
@@ -73,7 +101,12 @@ class Shortlist():
         self.in_progress = []
         # Ensure we start off increasing.
         self.sort()
-        self.closest = self.find_min(False)
+        self._closest = {}
+        # Add the closest contact (our vote)
+        # This only matters if there is 2 nodes
+        c = self.find_min()
+        if c is not None:
+            self._add_closest(c.contact)
 
     @property
     def searched(self):
@@ -82,6 +115,18 @@ class Shortlist():
         :rtype: int.
         """
         return self.search_space.count(lambda x: x.contacted)
+
+    @property
+    def closest(self):
+        if len(self._closest) == 0:
+            return None
+        return max(self._closest.values()).contact
+
+    def _add_closest(self, contact):
+        distance = (contact.hash ^ self.target_hash).significant_bit()
+        self._closest[contact.address.tuple] = self._closest.get(
+            contact.address.tuple, ClosestContact(contact, distance))
+        self._closest[contact.address.tuple].increment()
 
     def update(self, new_contacts):
         """
@@ -93,6 +138,11 @@ class Shortlist():
         # Sort incoming contacts
         new_contacts.sort(key=lambda x: x.hash ^ self.target_hash)
 
+        # Do some upvoting
+        if len(new_contacts) > 0:
+            self._add_closest(new_contacts[0])
+
+        # Add the contacts
         for contact in new_contacts:
             # Can not include self in shortlist
             if (self.own_hash != contact.hash):
@@ -165,7 +215,7 @@ class Shortlist():
         searchLambda = lambda x: not x.contacted
         # Find first uncontacted contact
         if (uncontacted):
-            if (self.searched > self.K):
+            if (self.searched >= self.K):
                 self.on_full_or_found(self.target_hash, self.closest)
                 return None
         else:
