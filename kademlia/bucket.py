@@ -177,7 +177,13 @@ class Buckets():
             count = self.K
         targethash = (self.own_hash ^ hash)
         significant_bit = targethash.significant_bit()
-        contacts = list(self._buckets[significant_bit].contacts)
+        # If we are looking for ourselves:
+        # Peyote spirit journey time!
+        # This will mess up if there is a hash collision @ own id
+        if significant_bit == 0:
+            contacts = list()
+        else:
+            contacts = list(self._buckets[significant_bit].contacts)
         # If we have a perfect bucket size, return all.
         # This will NEVER proc for own bucket unless 20 key collisions.
         # Aka never
