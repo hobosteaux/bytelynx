@@ -116,7 +116,6 @@ class ContactTable(Property):
         :param hash_: Given if this is a new client (on 'hello')
         :type hash_: :class:`~common.Hash`
         """
-
         # Get an existing contact
         try:
             contact = self._contacts_by_addr[str(address)]

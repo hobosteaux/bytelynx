@@ -44,6 +44,8 @@ class Bucket:
                     and (contact not in self.waitlist)):
                 self.waitlist.append(contact)
                 contact.on_death += self.waitlist_death
+        if report:
+            self.on_added(contact)
 
     def contact_death(self, contact):
         """

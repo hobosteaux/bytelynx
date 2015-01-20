@@ -43,11 +43,16 @@ def add_contact():
     if (not ip):
         ip = '127.0.0.1'
     port = int(input("Port: "))
-    addr = Address(ip, port)
-    s.net.send_data(Contact(addr),
+    contact = s.net._contacts.translate(Address(ip, port))
+    s.net.send_data(contact,
                     'hello',
                     {'hash': s.contact.hash})
 
+    # Make it so we seed once we join the DHT
+    def start_search(contact):
+        s.kademlia.buckets.on_added -= start_search
+        s.kademlia.init_search(s.contact.hash)
+    s.kademlia.buckets.on_added += start_search
 
 def search_contact():
     hash_ = input("Enter the hash [rand]: ")

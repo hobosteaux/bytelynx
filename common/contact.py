@@ -71,6 +71,7 @@ class Contact(Property):
         self.has_friend = False
         self.on_death = Event()
         self.on_hash = Event()
+        self.channel_finalization = Event()
         self.needs_hash = True
         self.set_hash(hash)
 
@@ -149,6 +150,7 @@ class Contact(Property):
             net = state.get().net
             for addr, raw_data in self.recv_msg_queue[channel.mode]:
                 net.on_data(addr, raw_data)
+        self.channel_finalization(channel.mode)
 
 
     def change_ping(self, ping, mode=PingModes.geometric):
