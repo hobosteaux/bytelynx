@@ -14,7 +14,7 @@ def get_maxint(byte_size):
     """
     if byte_size <= 0:
         return 0
-    val = 0xf
+    val = 0xff
     for i in range(1, byte_size):
         val = (val << 8) + 0xff
     return val
