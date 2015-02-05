@@ -20,7 +20,6 @@ class Flattenable():
     _flatten_dicts = []
 
     def flatten(self):
-        print("Flattening %s" % repr(self))
         d = {x: self.__getattribute__(x)
              for x in self._flatten_attrs}
         d.update({x: self.__getattribute__(x).flatten()

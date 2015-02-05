@@ -85,14 +85,3 @@ class List(list):
             else:
                 nonmatch.append(item)
         return (match, nonmatch)
-
-
-if __name__ == "__main__":
-    l = List()
-    l.append(1)
-    l.append(2)
-    l.append(3)
-    l.append(4)
-    print(l.first(lambda x: x == 2))
-
-    print(l.where(lambda x: x > 2))
