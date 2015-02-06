@@ -4,9 +4,11 @@ from time import sleep
 
 from .list import List as list
 from .event import Event
+from .btlxlogger import get as get_logger
 
 TIMEOUTMULT = 3
 """Multiplier as to how long it takes for a ping to time out"""
+Logger = get_logger('net.packetwatcher')
 
 
 class PacketWatcher():
@@ -57,7 +59,7 @@ class PacketWatcher():
             dead, self._packets = self._packets.split(
                 lambda x: x.ctt > x.contact.ping * TIMEOUTMULT)
             for pkt in dead:
-                print("DEAD PACKET: %s > %s" % (pkt.ctt, pkt.contact.ping))
+                Logger.info("DEAD PACKET: %s > %s" % (pkt.ctt, pkt.contact.ping))
                 pkt.contact.change_liveliness()
                 if pkt.contact.is_alive:
                     self.on_resend(pkt)

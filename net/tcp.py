@@ -1,13 +1,16 @@
 import socket
 import threading
 import json
+import traceback
 
 from common import Event, Address
+import common.btlxlogger as logger
 
 # TODO: allow datetimes across the wire
 
 
 class Server():
+    Logger = logger.get(__name__)
 
     def __init__(self, port, conn_limit, blocking=False):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,7 +34,7 @@ class Server():
             clientsock, addr = self._sock.accept()
             address = Address(addr[0], addr[1])
             self._clients[str(address)] = clientsock
-            print('Connected from:', addr)
+            self.Logger.info('Connected from:', addr)
             listenThread = threading.Thread(target=self.handler,
                                             args=(clientsock, address))
             listenThread.start()
@@ -42,19 +45,19 @@ class Server():
             try:
                 data = clientsock.recv(buf)
                 if not data:
-                    print("Connection Broken", address)
+                    self.Logger.info("Connection Broken", address)
                     break
                 data = json.loads(data.decode('UTF-8'))
-                print("%s -> %s" % (address, data))
+                self.Logger.debug("%s -> %s" % (address, data))
                 self.on_data(address, data)
             except Exception as e:
-                print(e)
+                self.Logger.error(traceback.format_exc())
         clientsock.close()
         self.on_cleanup(address)
 
     def send_data(self, address, data):
         data = json.dumps(data)
-        print("%s <- %s" % (address, data))
+        self.Logger.debug("%s <- %s" % (address, data))
         self._clients[str(address)].send(bytes(data, 'UTF-8'))
 
 
@@ -85,4 +88,4 @@ class Client():
                 print("<- %s" % data)
                 self.on_data(data)
             except Exception as e:
-                print(e)
+                print(traceback.format_exc())

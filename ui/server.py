@@ -1,9 +1,12 @@
 from threading import Lock, Thread
 from functools import reduce
 from datetime import datetime, timedelta
+import traceback
 
 from net.tcp import Server
 from ui import protocol
+import common.btlxlogger as logger
+
 
 #TODO: Convert this to use websockets
 
@@ -18,6 +21,7 @@ class Client():
 
 
 class UIServer():
+    Logger = logger.get(__name__)
 
     def __init__(self, port, max_conns):
         self.server = Server(port, max_conns)
@@ -78,7 +82,7 @@ class UIServer():
             # Used because transforming some of these items is expensive.
             # This could be done in one huge ass expression,
             # but that may be unreadable.
-            print(self.subscribers)
+            self.Logger.debug("Subcribers: %s", self.subscribers)
             with self._subscriber_lock:
                 subbed_props = reduce(lambda x, y: x.union(y),
                                       (x.subscriptions for x
@@ -108,7 +112,7 @@ class UIServer():
         types needed.
         """
         with self._properties_lock:
-            print("updating %s (%s)" % (name, value))
+            self.Logger.debug("updating %s (%s)", name, value)
             self._updated_properties.add(name)
         self.try_update()
 
@@ -143,11 +147,11 @@ class UIServer():
             data = payload['values']
             self.proto[cmd_name].handler(subscriber, data)
         except Exception as e:
-            print("UI ex: %s" % e)
+            self.Logger.error(traceback.format_exc())
 
     def _get_events_handler(self, subscriber, data):
         names = [x for x in self.properties.keys()]
-        print(names)
+        self.Logger.debug("Events: %s", names)
         self.send_data(subscriber, 'events', names)
 
     def _subscribe_handler(self, subscriber, data):

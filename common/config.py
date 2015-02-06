@@ -1,4 +1,6 @@
-
+import os
+from os import path
+import tempfile
 import json
 
 # start-after
@@ -66,3 +68,24 @@ class Config():
     def _save(self):
         with open(self._path, 'w') as f:
             f.write(json.dumps(self._config, indent=4))
+
+
+CONFIG = None
+
+def get_testing_config():
+    os.makedirs('tmp', exist_ok=True)
+    config_dir = tempfile.mkdtemp(dir='tmp')
+    config_file = path.join(config_dir, 'config.json')
+    config = Config(config_file)
+    config['general']['config_dir'] = config_dir
+    config['kademlia']['keyfile'] = path.join(config_dir, 'key.pem')
+    # TODO: Re-enable testing keys
+    # self.gen_testing_key(config['kademlia']['keyfile'])
+    return config
+
+
+def get():
+    global CONFIG
+    if CONFIG is None:
+        CONFIG = get_testing_config()
+    return CONFIG

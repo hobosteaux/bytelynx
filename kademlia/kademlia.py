@@ -2,6 +2,9 @@
 from .bucket import Buckets
 from .shortlist import Shortlists
 from common import dbinterface
+from common import btlxlogger as logger
+
+Logger = logger.get('kademlia')
 
 
 class Kademlia():
@@ -71,7 +74,7 @@ class Kademlia():
         :param contact: The contact that data was received from
         :type contact: :class:`~common.Contact`
         """
-        print("DHT for %s" % contact)
+        Logger.debug("DHT for %s" % contact)
         self.buckets.update(contact)
 
     def on_find_node_request(self, contact, data):
@@ -84,15 +87,14 @@ class Kademlia():
         contacts = [x for x in contacts
                     if x != contact
                     and x != self.own_contact][:self.K]
-        print("FIND_CONTACTS: %s" % contacts)
+        Logger.debug("Sending Contacts: %s" % contacts)
         retData = {'hash': data['payload']['hash'], 'nodes': contacts}
         self.net.send_data(contact, 'dht.response', retData)
 
     def on_find_node_response(self, contact, data):
         # Translate to 'real' contacts first
-        print("INDATA %s" % data['payload']['nodes'])
         contacts = self.net.update_contacts(data['payload']['nodes'])
-        print("INCONTACTS: %s" % contacts)
+        Logger.debug("Received Contacts: %s" % contacts)
         self.shortlists.add_response(data['payload']['hash'],
                                      contact.address,
                                      contacts)

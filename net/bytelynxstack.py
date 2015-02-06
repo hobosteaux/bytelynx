@@ -3,8 +3,13 @@ from .contacttable import ContactTable
 from .prototree import Protocol
 from .udp import Server
 from net import protofuncs
-from common import SentPacket, PacketWatcher
+from common import SentPacket
+from common.packetwatcher import PacketWatcher
 from common.exceptions import ChannelDNEError
+import common.btlxlogger as logger
+
+Logger = logger.get(__name__)
+
 
 class Stack():
     """
@@ -56,7 +61,7 @@ class Stack():
             contact.add_recv_msg(e.args[0], address, raw_data)
         else:
             msg = self.protocol.messages[msg_name]
-            print("Recieved message: %s" % msg)
+            Logger.debug("<- %s: %s" % (address, msg))
             channel = contact.channels[msg.mode]
 
             # Do message housekeeping
@@ -96,14 +101,14 @@ class Stack():
         :type data: dict.
         """
         msg = self.protocol.messages[msg_name]
-        print("Sending message: %s" % msg)
+        Logger.debug("-> %s: %s" % (contact.address, msg))
         # Get a packet id for this message
         try:
             channel = contact.channels[msg.mode]
         # If we have not extablished a channel yet
         except KeyError as e:
             if msg.mode == 'aes-dht':
-                print("Establishing AES-DHT channel")
+                Logger.info("Establishing AES-DHT channel with %s" % contact.address)
                 contact.add_sent_msg(msg.mode, msg_name, data)
                 # Send a 'Hello'
                 import state

@@ -3,6 +3,8 @@ from threading import Thread
 import traceback
 
 from common import Address, Event
+import common.btlxlogger as logger
+Logger = logger.get(__name__)
 
 
 class Server():
@@ -27,7 +29,6 @@ class Server():
         """
         Main while (True) loop to receive messages.
         """
-        # print("Waiting for message")
         while (True):
             raw_data, address = self._sock.recvfrom(65536)
 
@@ -36,8 +37,9 @@ class Server():
                 address = Address(address[0], address[1])
                 self.on_data(address, raw_data)
             except:
-                print("ERROR:", address, raw_data)
-                print(traceback.format_exc())
+                Logger.error("----- Receive Error -----")
+                Logger.error("From: %s, Data: %s", address, raw_data)
+                Logger.error(traceback.format_exc())
 
     def send(self, address, raw_data):
         """

@@ -3,7 +3,10 @@ from collections import namedtuple
 
 from common import Contact, Address, Hash, Event
 from common import List as list
+from common import btlxlogger as logger
 from .exceptions import NoContactsError
+
+Logger = logger.get(__name__)
 
 
 class SearchContact():
@@ -314,6 +317,7 @@ class Shortlists():
         :param contacts: The initial contacts.
         :type contacts: [:class:`~common.Contact`]
         """
+        Logger.debug("Starting Search: %s", hash_)
         self._task_queue.put((self._start_search, (hash_, contacts)))
 
     def _start_search(self, hash_, contacts):
@@ -332,6 +336,7 @@ class Shortlists():
         :param responses: Contacts received.
         :type responses: [:class:`common.Contact`]
         """
+        Logger.debug("Add Response: %s", request_addr)
         self._task_queue.put((self._add_response, (hash_, request_addr,
                                                    responses)))
 
@@ -386,10 +391,10 @@ class Shortlists():
         while (True):
             while (self._task_queue.qsize() > 0):
                 task = self._task_queue.get()
-            #   if (task[0] != self._clean_lists):
-            #       print('TASK:', task)
+                if (task[0] != self._clean_lists):
+                    Logger.debug('TASK: %s', str(task))
                 task[0](*(task[1]))
-            sleep(.2)
+            sleep(0.5)
             self._task_queue.put((self._clean_lists, ()))
 
 

@@ -1,6 +1,9 @@
 from datetime import datetime
 
 from common import Event, List as list
+from common import btlxlogger as logger
+
+Logger = logger.get(__name__)
 
 
 class Bucket:
@@ -191,5 +194,5 @@ class Buckets():
             if (len(contacts) >= count):
                 return sorted(contacts, key=lambda x:
                               targethash.AbsDiff(self.own_hash ^ x.hash))[:count]
-        print("GET_CLOSEST ret: %s" % contacts)
+        Logger.debug("GET_CLOSEST ret: %s" % contacts)
         return contacts

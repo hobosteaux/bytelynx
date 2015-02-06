@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from collections import defaultdict
 
+from .config import get as get_config
 from .event import Event
 from .list import List as list
 from .channel import Channel
@@ -201,8 +202,7 @@ class Friend():
         self.nick = nick
         # find hash
         # NastyImport
-        import state
-        bitsize = state.get().bitsize
+        bitsize = get_config()['kademlia']['keysize']
         # TODO: push this into the publickey object
         # REQ: cryptography 0.6
         self.hash = hash_from_pub(pubkey, bitsize)

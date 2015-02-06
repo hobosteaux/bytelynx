@@ -9,6 +9,9 @@ from net.common import (MAGIC_HEADER, PROTO_VERSION,
 from .tagconstants import Tags
 from common.exceptions import ProtocolError, ChannelDNEError
 from common import Event
+import common.btlxlogger as logger
+
+Logger = logger.get(__name__)
 
 
 class Message():
@@ -246,7 +249,8 @@ class CarrierMessage(Message):
                                 data[offset:offset +
                                      struct.calcsize(VERSION_SYMBOL)])[0]
         if version != PROTO_VERSION:
-            print(version, PROTO_VERSION)
+            Logger.error("Protocol version mismatch (%s vs known %s)" %
+                         (version, PROTO_VERSION))
             raise ProtocolError("Protocol is from a different version")
         offset += struct.calcsize(VERSION_SYMBOL)
         # Figure out what type of packet this is.
@@ -327,7 +331,6 @@ class Protocol():
         :param contact: The contact that the message belongs to.
         :type contact: :class:`~common.Contact`
         """
-        print('using protocol.encode')
         return self.proto.encode(data, contact)
 
     def get_messages(self, proto=None):
