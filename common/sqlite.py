@@ -36,11 +36,11 @@ class dbinterface():
         :returns: All contacts in the db.
         :rtype: [:class:`common.Contact`]
         """
-        statement = 'SELECT * FROM swarm'
+        statement = 'SELECT ip, port, hash FROM swarm'
         cur = self.conn.cursor()
         cur.execute(statement)
-        return list(map(lambda x: Contact(Address(x['ip'], x['port']),
-                                          Hash(x['hash'])),
+        return list(map(lambda x: Contact(Address(x[0], x[1]),
+                                          Hash(x[2])),
                         cur.fetchall()))
         cur.close()
 
@@ -77,7 +77,7 @@ class dbinterface():
         statement = 'SELECT (nickname, publickey) FROM friends'
         cur = self.conn.cursor()
         cur.execute(statement)
-        return list(map(lambda x: Friend(x['publickey'], x['nickname'])))
+        return list(map(lambda x: Friend(x[1], x[0])))
 
     def add_friend(self, friend):
         statement = 'INSERT INTO friends(publickey, nickname) VALUES(?,?)'
