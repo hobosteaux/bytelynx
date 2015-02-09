@@ -7,14 +7,16 @@ def get(module='main', mode=logging.DEBUG):
     d = get_config()['general']['config_dir']
     ld = path.join(d, 'log')
     makedirs(ld, exist_ok=True)
-    ln = path.join(ld, module.split('.')[0] + '.log')
+    root = module.split('.')[0]
+    ln = path.join(ld, root + '.log')
 
-    logger = logging.getLogger(module)
-    if not logger.hasHandlers():
+    bl = logging.getLogger(root)
+    if not bl.hasHandlers():
         formatter = logging.Formatter(
             '%(asctime)s %(levelname)s %(name)s: %(message)s')
         handler = logging.FileHandler(ln)
         handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(mode)
-    return logger
+        bl.addHandler(handler)
+        bl.setLevel(mode)
+
+    return logging.getLogger(module)
