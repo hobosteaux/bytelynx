@@ -2,6 +2,7 @@ import os
 from os import path
 import tempfile
 import json
+import argparse
 
 # start-after
 #: The default config
@@ -72,9 +73,13 @@ class Config():
 
 CONFIG = None
 
-def get_testing_config():
-    os.makedirs('tmp', exist_ok=True)
-    config_dir = tempfile.mkdtemp(dir='tmp')
+def get_testing_config(ddir=None):
+    if ddir is None:
+        os.makedirs('tmp', exist_ok=True)
+        config_dir = tempfile.mkdtemp(dir='tmp')
+    else:
+        os.makedirs(ddir, exist_ok=True)
+        config_dir = ddir
     config_file = path.join(config_dir, 'config.json')
     config = Config(config_file)
     config['general']['config_dir'] = config_dir
@@ -87,5 +92,8 @@ def get_testing_config():
 def get():
     global CONFIG
     if CONFIG is None:
-        CONFIG = get_testing_config()
+        p = argparse.ArgumentParser(description="ByteLynx Server")
+        p.add_argument('--dir', help="This instance's config root")
+        args = p.parse_args()
+        CONFIG = get_testing_config(args.dir)
     return CONFIG
