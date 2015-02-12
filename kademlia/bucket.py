@@ -129,6 +129,9 @@ class Buckets():
             bucket.on_removed += self.on_removed
         self._conns = {}
 
+    def __len__(self):
+        return sum(map(lambda x: len(x.contacts), self._buckets))
+
     def seed(self, contacts):
         """
         Function for initial seeding of the _buckets.

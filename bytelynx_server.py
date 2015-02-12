@@ -67,7 +67,11 @@ def search_contact():
 
 # TODO: cmd arg for config path
 if __name__ == '__main__':
-    state.get()
+    s = state.get()
+    # Our own contact is always in the buckets
+    if len(s.kademlia.buckets) > 1:
+        s.kademlia.init_search(s.contact.hash)
+        s.kademlia.init_search(Hash(os.urandom(s.bitsize // 8)))
 
     main_menu = Menu([
         MenuOption('Client Status', print_status),
