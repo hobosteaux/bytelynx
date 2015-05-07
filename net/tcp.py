@@ -20,8 +20,8 @@ class Server():
         self._sock.bind(('', port))
         self._sock.listen(conn_limit)
         self._clients = {}
-        self.on_data = Event()
-        self.on_cleanup = Event()
+        self.on_data = Event('tcp.server.on_data')
+        self.on_cleanup = Event('tcp.server.on_cleanup')
         if blocking:
             self.listen()
         else:

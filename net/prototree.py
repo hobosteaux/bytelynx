@@ -94,10 +94,10 @@ class Message():
         # Init params for submessages
         self.set_child_attrs(mode)
         # Set all events
-        self.on_dht = Event()
+        self.on_dht = Event('Message.on_dht')
         if dht_func is not None:
             self.on_dht += dht_func
-        self.on_data = Event()
+        self.on_data = Event('Message.on_data')
 
     @property
     def pong_msg(self):
@@ -303,9 +303,9 @@ class Protocol():
     """
 
     def __init__(self, translator):
-        self.on_dht = Event()
-        self.on_dht_ping = Event()
-        self.on_net_ping = Event()
+        self.on_dht = Event('Protocol.on_dht')
+        self.on_dht_ping = Event('Protocol.on_dht_ping')
+        self.on_net_ping = Event('Protocol.on_net_ping')
 
         self.proto = None
         self.set_proto(translator)

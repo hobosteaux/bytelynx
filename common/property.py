@@ -23,7 +23,7 @@ class Property(Flattenable):
 
     def __init__(self, name, value):
         self.name = name
-        self.on_changed = Event()
+        self.on_changed = Event('Property(%s).on_changed' % name)
         self._value = value
 
     def __str__(self):

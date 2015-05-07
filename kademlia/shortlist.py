@@ -100,7 +100,7 @@ class Shortlist():
                                  for x in initial_contacts)
         self.own_hash = own_hash
         self.target_hash = target_hash
-        self.on_full_or_found = Event()
+        self.on_full_or_found = Event('Shortlist.on_full_or_found')
         self.in_progress = []
         # Ensure we start off increasing.
         self.sort()
@@ -302,8 +302,8 @@ class Shortlists():
         self._own_hash = own_hash
         self._shortlists = {}  # {hash : shortlist}
         self._task_queue = Queue()
-        self.on_search = Event()
-        self.on_full_or_found = Event()
+        self.on_search = Event('Shortlists.on_search')
+        self.on_full_or_found = Event('Shortlists.on_full_or_found')
         self._watcher_thread = Thread(target=self._watcher)
         self._watcher_thread.daemon = True
         self._watcher_thread.start()

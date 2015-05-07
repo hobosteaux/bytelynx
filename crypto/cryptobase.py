@@ -9,7 +9,7 @@ class CryptoModule():
     """
     def __init__(self):
         self.state = 'created'
-        self.on_finalization = Event()
+        self.on_finalization = Event('Cryptobase.on_finalization')
 
     def encrypt(self, data):
         """

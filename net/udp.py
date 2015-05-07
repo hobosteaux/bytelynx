@@ -17,7 +17,7 @@ class Server():
     """
 
     def __init__(self, port):
-        self.on_data = Event()
+        self.on_data = Event('udp.server.on_data')
         self._bind_address = ('', port)
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(self._bind_address)

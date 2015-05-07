@@ -70,9 +70,9 @@ class Contact(Property):
         self.pings = list()
         self.channels = {}
         self.has_friend = False
-        self.on_death = Event()
-        self.on_hash = Event()
-        self.channel_finalization = Event()
+        self.on_death = Event('Contact.on_death')
+        self.on_hash = Event('Contact.on_hash')
+        self.channel_finalization = Event('Contact.channel_finalization')
         self.needs_hash = True
         self.set_hash(hash)
 

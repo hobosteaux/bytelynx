@@ -28,7 +28,7 @@ class PacketWatcher():
         self._packets = list()
         self._action_list = list()
         self._rm_dict = list()
-        self.on_resend = Event()
+        self.on_resend = Event('PacketWatcher.on_resend')
 
         self._lock = Lock()
         self._thread = Thread(target=self._sweep)

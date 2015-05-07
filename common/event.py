@@ -1,23 +1,40 @@
 #!/usr/bin/python3
+from types import new_class
+import traceback
+import sys
 
 
-class Event:
+def Event(name):
+    """
+    A mutator for events.
+
+    Still unproven if it works, but *should*
+    dynamically make classes for each unique event.
+    This way, debugging is easier,
+    since we can tell which event is which.
+    """
+    c = new_class(name, bases=(_Event,))(name)
+    return c
+
+
+class _Event():
     """
     C# style event.
 
     Example:
 
     >>> from common import Event
-    >>> e = Event()
+    >>> e = Event('test1')
     >>> e += lambda: print("fired")
     >>> e()
 
-    >>> e = Event()
+    >>> e = Event('test2')
     >>> e += lambda x: print("fired with arg %s" % x)
     >>> e('an arg')
     """
 
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.handlers = set()
 
     def handle(self, handler):
@@ -35,38 +52,19 @@ class Event:
     def fire(self, *args, **kargs):
         # Copy the set
         # Prevents iteration errors if an event removes itself
-        for handler in self.handlers.copy():
-            handler(*args, **kargs)
+        try:
+            for handler in self.handlers.copy():
+                handler(*args, **kargs)
+        except Exception as e:
+            #print(traceback.format_exc(), file=sys.stderr)
+            print("Event: %s" % self.name, file=sys.stderr)
+            print('-' * 20, file=sys.stderr)
+            raise e
 
-    def getHandlerCount(self):
+    def handler_count(self):
         return len(self.handlers)
 
     __iadd__ = handle
     __isub__ = unhandle
     __call__ = fire
-    __len__ = getHandlerCount
-
-
-# --- EXAMPLE ---
-class MockFileWatcher:
-    def __init__(self):
-        self.fileChanged = Event()
-
-    def watchFiles(self):
-        source_path = "foo"
-        self.fileChanged(source_path)
-
-
-def log_file_change(source_path):
-    print("%r changed." % (source_path,))
-
-
-def log_file_change2(source_path):
-    print("%r changed!" % (source_path,))
-
-if (__name__ == '__main__'):
-    watcher = MockFileWatcher()
-    watcher.fileChanged += log_file_change2
-    watcher.fileChanged += log_file_change
-    watcher.fileChanged -= log_file_change2
-    watcher.watchFiles()
+    __len__ = handler_count

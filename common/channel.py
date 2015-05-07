@@ -55,7 +55,7 @@ class Channel():
         self._lock = Lock()
         # TODO: Will this orphan packets if one is resent?
         self.packets = {}
-        self.on_finalization = Event()
+        self.on_finalization = Event('Channel.on_finalization')
         crypto.on_finalization += (lambda: self.on_finalization(self))
 
         # Random packet id so it is not predictable.

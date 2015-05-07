@@ -26,8 +26,8 @@ class Bucket:
         self.K = K
         self.contacts = list()
         self.waitlist = list()
-        self.on_added = Event()
-        self.on_removed = Event()
+        self.on_added = Event('Bucket.on_added')
+        self.on_removed = Event('Bucket.on_removed')
 
     def update(self, contact, report=True):
         """
@@ -119,8 +119,8 @@ class Buckets():
         self.B = B
         self.own_hash = own_hash
         self._last_check = datetime.now()
-        self.on_added = Event()
-        self.on_removed = Event()
+        self.on_added = Event('Buckets.on_added')
+        self.on_removed = Event('Buckets.on_removed')
         # B+1 buckets because 0 means perfect match
         # 1-320 represent the bit level difference (index + 1)
         self._buckets = [Bucket(K) for i in range(self.B + 1)]
